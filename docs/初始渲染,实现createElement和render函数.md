@@ -1,4 +1,6 @@
-`jsx` 是一段最终呈现出来的是一段普通的 `js` 代码
+## createElement
+
+我们知道 `jsx` 是一段最终呈现出来的是一段普通的 `js` 代码
 
 比如下面的 `jsx` 代码
 
@@ -398,3 +400,18 @@ function setPropsForDOM(dom, VNodeProps = {}) {
   }
 }
 ```
+
+## 总结
+
+1. `jsx` 是语法糖，最终会转换成 `js` 代码，由 `babel` 完成，转换后会变成 `React.createElement("div", null, "hello world")`
+2. `createElement` 返回虚拟 `dom`，也就是 `VNode`，交个 `render` 函数去处理
+3. `render` 函数负责将虚拟 `dom` 转换成真实 `dom`，并将真实的 `dom` 挂载到容器上
+4. 将虚拟 `dom` 转换成真实 `dom` 有三个步骤
+   - 创建元素
+   - 处理子元素
+   - 处理属性
+
+## 源码
+
+1. [createElement 源码](https://github.com/astak16/simple-react/blob/9d17d522f60983cccdcc59992ecf37761499949f/src/react.js#L3)
+2. [render 源码](https://github.com/astak16/simple-react/blob/9d17d522f60983cccdcc59992ecf37761499949f/src/react-dom.js#L3)
