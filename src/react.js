@@ -1,4 +1,5 @@
 import { REACT_ELEMENT } from "./utils";
+import { Component } from "./Component";
 
 function createElement(type, properties, children) {
   // 将 ref 和 key 从 properties 中提取出来
@@ -26,4 +27,5 @@ function createElement(type, properties, children) {
     props,
   };
 }
-export default { createElement };
+
+export default { createElement, Component };

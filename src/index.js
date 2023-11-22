@@ -7,5 +7,18 @@ const element = (
     <div style={{ color: "blue" }}>react source</div>
   </div>
 );
-console.log(element);
-ReactDOM.render(element, document.getElementById("root"));
+
+const App = () => {
+  return element;
+};
+
+class MyApp extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+  render() {
+    return <div>{this.props.name}</div>;
+  }
+}
+// console.log(App);
+ReactDOM.render(<MyApp name="uccs" />, document.getElementById("root"));
