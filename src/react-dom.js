@@ -15,7 +15,7 @@ function createDOM(VNode) {
   let { type, props, $$typeof, ref } = VNode;
   let dom;
   // 处理 forwardRef
-  if (type && type.REACT_FORWARD_REF) {
+  if (type && type.$$typeof === REACT_FORWARD_REF) {
     return getDomByForwardRefFunction(VNode);
   }
   // 不管是函数组件、类组件、 VNode，$$typeof 都是 REACT_ELEMENT
@@ -120,7 +120,7 @@ function getDomByFunctionComponent(VNode) {
 function getDomByForwardRefFunction(VNode) {
   let { type, props, ref } = VNode;
   // 因为 type 是函数，所以直接执行
-  let renderVNode = type(props, ref);
+  let renderVNode = type.render(props, ref);
   // 有时候函数组件返回的是 null，这时候就不需要渲染了
   if (!renderVNode) return null;
   // 函数组件返回的是 VNode，所以需要递归处理
