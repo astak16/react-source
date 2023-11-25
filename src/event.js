@@ -22,12 +22,6 @@ function dispatchEvent(nativeEvent) {
     // target 是事件触发的元素
     // 在冒泡的过程中，target 始终不变，currentTarget 会指向正在处理事件的元素
     syntheticEvent.currentTarget = target;
-    console.log(nativeEvent.currentTarget, nativeEvent.target, "nativeEvent");
-    console.log(
-      syntheticEvent.currentTarget,
-      syntheticEvent.target,
-      "syntheticEvent"
-    );
     // 在原生事件中，事件名是 click，但是合成事件中，事件名是 onclick（这里已经变成小写了）
     let eventName = `on${nativeEvent.type}`;
     // 事件对应的函数
