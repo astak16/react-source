@@ -80,7 +80,7 @@ export class Component {
     // 调用 render 方法，得到新的 VNode
     let newVNode = this.render();
     // 更新 DOM，并将新的 DOM 挂载到页面上
-    updateDomTree(oldDOM, newVNode);
+    updateDomTree(oldVNode, newVNode, oldDOM);
     // 将新的 VNode 挂载到 Component 上
     this.oldVNode = newVNode;
   }

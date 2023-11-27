@@ -2,59 +2,42 @@ import React from "./react";
 import ReactDOM from "./react-dom";
 
 class MyClassComponent extends React.Component {
+  isReset = false;
+  oldArr = ["A", "B", "C", "D", "E"];
+  newArr = ["C", "B", "E", "F", "A"];
   constructor(props) {
     super(props);
-    this.state = { count: "0" };
-    this.domRef = React.createRef();
-    this.functionRef = React.createRef();
+    this.state = { arr: this.oldArr };
   }
-  onClickClassComponent() {
-    this.domRef.current.focus();
+  updateShowArr() {
+    this.setState({
+      arr: this.isReset ? this.oldArr : this.newArr,
+    });
+    this.isReset = !this.isReset;
   }
-  onClickFunctionComponent() {
-    this.functionRef.current.focus();
-  }
-  updateCount = () => {
-    this.setState({ count: "100" });
-  };
   render() {
     return (
       <div>
-        My Class Component state: {this.state.count}
-        <div onClick={() => this.onClickClassComponent()}>
-          聚焦到 ClassComponent
+        <div
+          className="test-class"
+          style={{
+            color: "red",
+            cursor: "pointer",
+            border: "1px solid gray",
+            borderRadius: "6px",
+            display: "inline-block",
+            padding: "6px 12px",
+          }}
+          onClick={() => this.updateShowArr()}>
+          Change The Text
         </div>
-        <div onClick={() => this.onClickFunctionComponent()}>
-          聚焦到 FunctionComponent
+        <div>
+          {this.state.arr.map((item) => {
+            return <div key={item}>{item}</div>;
+          })}
         </div>
-        <MyFunctionComponent ref={this.functionRef} />
-        <input type="text" ref={this.domRef} placeholder="ClassComponent" />
       </div>
     );
   }
 }
-
-class MyClassComponent2 extends React.Component {
-  constructor(props) {
-    super(props);
-    this.myRef = React.createRef();
-  }
-  onClick = () => {
-    this.myRef.current.updateCount();
-  };
-  render() {
-    return (
-      <div>
-        <div onClick={this.onClick}>修改 MyClassComponent state</div>
-        <MyClassComponent ref={this.myRef} />
-      </div>
-    );
-  }
-}
-
-const MyFunctionComponent = React.forwardRef((props, ref) => {
-  return <input ref={ref} placeholder="FunctionComponent" />;
-});
-console.log(MyFunctionComponent);
-
-ReactDOM.render(<MyClassComponent2 />, document.getElementById("root"));
+ReactDOM.render(<MyClassComponent />, document.getElementById("root"));

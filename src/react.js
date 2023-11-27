@@ -1,4 +1,4 @@
-import { REACT_ELEMENT, REACT_FORWARD_REF } from "./utils";
+import { REACT_ELEMENT, REACT_FORWARD_REF, toVNode } from "./utils";
 import { Component } from "./Component";
 
 function createElement(type, properties, children) {
@@ -14,9 +14,11 @@ function createElement(type, properties, children) {
   let props = { ...properties };
   // 对 children 进行处理，如果有多个 children，放到一个数组中，如果只有一个或者没有 children，直接赋值给 props.children
   if (arguments.length > 3) {
-    props.children = Array.prototype.slice.call(arguments, 2);
+    // 将 children 中的每一项都使用 toVNode 方法进行处理
+    props.children = Array.prototype.slice.call(arguments, 2).map(toVNode);
   } else {
-    props.children = children;
+    // 对 children 使用 toVNode 方法进行处理
+    props.children = toVNode(children);
   }
   // 返回一个虚拟 dom 对象，这个对象就是 createElement 的返回值
   return {
