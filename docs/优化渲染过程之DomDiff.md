@@ -665,4 +665,4 @@ actions.forEach((action) => {
 
 ## 源码
 
-[updateDomTree](https://github.com/astak16/simple-react/blob/main/src/Component.js#L83)
+[updateDomTree](https://github.com/astak16/simple-react/blob/a651698dc528c120a6c3a308bcc446a10684cb82/src/Component.js#L83)
