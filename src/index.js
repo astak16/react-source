@@ -1,5 +1,17 @@
 import React from "./react";
 import ReactDOM from "./react-dom";
+class Text extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log(nextProps);
+    return true;
+  }
+  render() {
+    return <h2>It is {this.props.date.toLocaleTimeString()}.</h2>;
+  }
+}
 
 class Clock extends React.Component {
   constructor(props) {
@@ -13,7 +25,6 @@ class Clock extends React.Component {
   // 3. 可以进行网络请求
   // 4. 可以做事件订阅，但需要在 componentWillUnmount 中取消订阅
   // 5. 不适合在这里调用 setState，会触发一次更新，state 初始值最好在 constructor 中赋值
-
   componentDidMount() {
     console.log("componentDidMount", document.getElementById("h1"));
     this.timerID = setInterval(() => this.tick(), 1000);
@@ -29,13 +40,13 @@ class Clock extends React.Component {
   // 7. 如果将 props 中的内容拷贝到 state，可以考虑直接使用 props，而不是在这里进行拷贝
   // https://reactjs.org/blog/2018/06/07/you-probably-dont-need-derived-state.html
   componentDidUpdate(prevProps, prevState, snapshot) {
-    console.log(
-      "componentDidUpdated",
-      prevProps,
-      this.state,
-      prevState,
-      snapshot
-    );
+    // console.log(
+    //   "componentDidUpdated",
+    //   prevProps,
+    //   this.state,
+    //   prevState,
+    //   snapshot
+    // );
   }
 
   // https://reactjs.org/docs/react-component.html#componentwillunmount
@@ -47,6 +58,18 @@ class Clock extends React.Component {
     clearInterval(this.timerID);
   }
 
+  // https://reactjs.org/docs/react-component.html#shouldcomponentupdate
+  // 1.界面展示不受到 props 和 state 的变化的影响的时候使用
+  // 2.默认行为是返回 true，也就是需要更新
+  // 3.该函数在 render 函数执行之前调用
+  // 4.初始化渲染，或者执行 forceUpdate 的时候，不会调用该函数
+  // 5.仅仅作为性能优化的手段，建议不手动编写，而是使用 PureComponent
+  // 6.返回 false，render 和 componentDidUpdate 都不会执行
+  shouldComponentUpdate(nextProps, nextState) {
+    // console.log("shouldComponentUpdate", nextState, this.state);
+    return true;
+  }
+
   tick() {
     this.setState({ date: new Date() });
   }
@@ -55,7 +78,8 @@ class Clock extends React.Component {
     return (
       <div>
         <h1 id="h1">Hello, world!</h1>
-        <h2>It is {this.state.date.toLocaleTimeString()}.</h2>
+        <Text date={this.state.date} />
+        {/* <h2>It is {this.state.date.toLocaleTimeString()}.</h2> */}
       </div>
     );
   }

@@ -34,9 +34,13 @@ function createDOM(VNode) {
     type.IS_CLASS_COMPONENT
   ) {
     const classComponent = getDomByClassComponent(VNode);
+
     // 将实例保存到全局
-    classComponentInstance = classComponent.instance;
-    return classComponent.dom;
+    if (classComponent) {
+      classComponentInstance = classComponent.instance;
+      return classComponent.dom;
+    }
+    return null;
   }
   // 函数组件
   if (typeof type === "function" && $$typeof === REACT_ELEMENT) {
@@ -201,9 +205,9 @@ function deepDOMDiff(oldVNode, newVNode) {
     ORIGIN_NODE: typeof oldVNode.type === "string",
     // 类组件，type 是一个函数，但是有 IS_CLASS_COMPONENT 属性
     CLASS_COMPONENT:
-      typeof oldVNode === "function" && oldVNode.type.IS_CLASS_COMPONENT,
+      typeof oldVNode.type === "function" && oldVNode.type.IS_CLASS_COMPONENT,
     // 函数组件，type 是一个函数
-    FUNCTION_COMPONENT: typeof oldVNode === "function",
+    FUNCTION_COMPONENT: typeof oldVNode.type === "function",
     // 文本节点，type 是一个字符串，值是 REACT_TEXT
     TEXT: oldVNode.type === REACT_TEXT,
   };
@@ -239,9 +243,10 @@ function deepDOMDiff(oldVNode, newVNode) {
 }
 
 function updateClassComponent(oldVNode, newVNode) {
-  // 对于当前界面，旧的实例是与页面上已渲染的组件是相对应的，在生命周期函数中，会尝试比较 newProps 和 oldProps
+  // 对于当前界面，旧的实例是与页面上已渲染的组件是相对应的，在生命周期函数中，会尝试比较 nextProps 和 oldProps
   const classInstance = (newVNode.classInstance = oldVNode.classInstance);
-  classInstance.updater.launchUpdate();
+  // 将 nextProps 传递给 launchUpdate
+  classInstance.updater.launchUpdate(newVNode.props);
 }
 
 function updateFunctionComponent(oldVNode, newVNode) {
@@ -260,11 +265,11 @@ function updateFunctionComponent(oldVNode, newVNode) {
 }
 
 function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
-  // 将 oldVNodeChildren 的 chidlren 处理成数组
+  // 将 oldVNodeChildren 的 children 处理成数组
   oldVNodeChildren = (
     Array.isArray(oldVNodeChildren) ? oldVNodeChildren : [oldVNodeChildren]
   ).filter(Boolean);
-  // 将 newVNodeChildren 的 chidlren 处理成数组
+  // 将 newVNodeChildren 的 children 处理成数组
   newVNodeChildren = (
     Array.isArray(newVNodeChildren) ? newVNodeChildren : [newVNodeChildren]
   ).filter(Boolean);

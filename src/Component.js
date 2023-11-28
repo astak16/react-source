@@ -40,22 +40,37 @@ class Updater {
       this.launchUpdate();
     }
   }
-  launchUpdate() {
+  launchUpdate(nextProps) {
     const { ClassComponentInstance, pendingStates } = this;
+    // 如果没有需要更新的 state，并且也米有需要更新的 props，直接返回
+    if (pendingStates.length === 0 && !nextProps) return;
+    // 用来控制是否需要调用 update 方法
+    let isShouldUpdate = true;
     // 拿到 preState 和 preProps
     const preState = ClassComponentInstance.state;
     const preProps = ClassComponentInstance.props;
     // state 合并，只合并第一层
-    ClassComponentInstance.state = pendingStates.reduce(
-      (state, partialState) => {
-        return { ...state, ...partialState };
-      },
-      ClassComponentInstance.state
-    );
+    let nextState = pendingStates.reduce((state, partialState) => {
+      return { ...state, ...partialState };
+    }, ClassComponentInstance.state);
+
     // 清空 pendingStates
     pendingStates.length = 0;
-    // 更新视图，将 preProps 和 preState 传递给 update 函数
-    ClassComponentInstance.update(preProps, preState);
+    // 调用 shouldComponentUpdate 生命周期函数，如果返回 true，将 isShouldUpdate 设置为 false
+    if (
+      ClassComponentInstance.shouldComponentUpdate &&
+      !ClassComponentInstance.shouldComponentUpdate(nextProps, nextState)
+    ) {
+      isShouldUpdate = false;
+    }
+    // 将 state 和 props 更新为最新的
+    ClassComponentInstance.state = nextState;
+    if (nextProps) ClassComponentInstance.props = nextProps;
+    // 如果 isShouldUpdate 为 false，则不用调用 update
+    if (isShouldUpdate) {
+      // 更新视图，将 preProps 和 preState 传递给 update 函数
+      ClassComponentInstance.update(preProps, preState);
+    }
   }
 }
 
