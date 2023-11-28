@@ -6,17 +6,19 @@ import {
   CREATE,
   MOVE,
 } from "./utils";
-
+let classComponentInstance;
 function render(VNode, containerDOM) {
   mount(VNode, containerDOM);
 }
 
 function mount(VNode, containerDOM) {
   let newDOM = createDOM(VNode);
-
+  // 将 dom 挂载到页面
   newDOM && containerDOM.appendChild(newDOM);
+  // 如果存在生命周期函数 componentDidMount 函数，调用
+  if (classComponentInstance && classComponentInstance.componentDidMount)
+    classComponentInstance.componentDidMount();
 }
-
 function createDOM(VNode) {
   let { type, props, $$typeof, ref } = VNode;
   let dom;
@@ -31,7 +33,10 @@ function createDOM(VNode) {
     $$typeof === REACT_ELEMENT &&
     type.IS_CLASS_COMPONENT
   ) {
-    return getDomByClassComponent(VNode);
+    const classComponent = getDomByClassComponent(VNode);
+    // 将实例保存到全局
+    classComponentInstance = classComponent.instance;
+    return classComponent.dom;
   }
   // 函数组件
   if (typeof type === "function" && $$typeof === REACT_ELEMENT) {
@@ -111,7 +116,9 @@ function getDomByClassComponent(VNode) {
   // 返回 null 就不需要渲染了
   if (!renderVNode) return null;
   // 函数组件返回的事 VNode，所以需要递归处理
-  return createDOM(renderVNode);
+  let dom = createDOM(renderVNode);
+  // 将实例传递出来
+  return { dom, instance };
 }
 
 function getDomByFunctionComponent(VNode) {
@@ -183,6 +190,9 @@ function removeVNode(VNode) {
   const currentDOM = findDOMByVNode(VNode);
   // 删除 dom 节点
   if (currentDOM) currentDOM.remove();
+  // 如果存在生命周期函数 componentWillUnmount 函数，调用
+  if (VNode.classInstance && VNode.classInstance.componentWillUnmount)
+    VNode.classInstance.componentWillUnmount();
 }
 
 function deepDOMDiff(oldVNode, newVNode) {

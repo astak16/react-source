@@ -42,6 +42,9 @@ class Updater {
   }
   launchUpdate() {
     const { ClassComponentInstance, pendingStates } = this;
+    // 拿到 preState 和 preProps
+    const preState = ClassComponentInstance.state;
+    const preProps = ClassComponentInstance.props;
     // state 合并，只合并第一层
     ClassComponentInstance.state = pendingStates.reduce(
       (state, partialState) => {
@@ -51,8 +54,8 @@ class Updater {
     );
     // 清空 pendingStates
     pendingStates.length = 0;
-    // 更新视图
-    ClassComponentInstance.update();
+    // 更新视图，将 preProps 和 preState 传递给 update 函数
+    ClassComponentInstance.update(preProps, preState);
   }
 }
 
@@ -72,7 +75,7 @@ export class Component {
     // 调用 updater 的 addState 方法
     this.updater.addState(partialState);
   }
-  update() {
+  update(preProps, preState) {
     // 拿到 oldVNode
     let oldVNode = this.oldVNode;
     // 将 oldVNode 转换成真实 DOM
@@ -83,5 +86,7 @@ export class Component {
     updateDomTree(oldVNode, newVNode, oldDOM);
     // 将新的 VNode 挂载到 Component 上
     this.oldVNode = newVNode;
+    // 如果存在生命周期函数 componentDidUpdate 函数，调用，并传入 preProps 和 preState
+    if (this.componentDidUpdate) this.componentDidUpdate(preProps, preState);
   }
 }
