@@ -40,16 +40,35 @@ export const deepClone = (data) => {
 };
 function getType(obj) {
   let typeMap = {
-    "[Object Boolean]": "boolean",
-    "[Object Number]": "number",
-    "[Object String]": "string",
-    "[Object Function]": "function",
-    "[Object Array]": "array",
-    "[Object Date]": "date",
-    "[Object RegExp]": "regExp",
-    "[Object Undefined]": "undefined",
-    "[Object Null]": "null",
-    "[Object Object]": "object",
+    "[object Boolean]": "boolean",
+    "[object Number]": "number",
+    "[object String]": "string",
+    "[object Function]": "function",
+    "[object Array]": "array",
+    "[object Date]": "date",
+    "[object RegExp]": "regExp",
+    "[object Undefined]": "undefined",
+    "[object Null]": "null",
+    "[object Object]": "object",
   };
   return typeMap[Object.prototype.toString.call(obj)];
+}
+
+export function shallowCompare(obj1, obj2) {
+  // 如果两个对象相同，直接返回 true
+  if (obj1 === obj2) return true;
+  // 如果两个对象中有一个不是对象，直接返回 false
+  if (getType(obj1) !== "object" || getType(obj2) !== "object") return false;
+
+  let keys1 = Object.keys(obj1);
+  let keys2 = Object.keys(obj2);
+  // 如果两个对象的 key 的数量不相同，直接返回 false
+  if (keys1.length !== keys2.length) return false;
+
+  for (let key of keys1) {
+    // 如果 obj2 中不存在 obj1 的 key，或者 obj1 和 obj2 的 key 对应的值不相同，直接返回 false
+    if (!obj2.hasOwnProperty(key) || obj1[key] !== obj2[key]) return false;
+  }
+  // 直接返回 true
+  return true;
 }
