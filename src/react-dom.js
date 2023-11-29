@@ -109,12 +109,12 @@ function getDomByClassComponent(VNode) {
   let { type, props, ref } = VNode;
   // 因为 type 是 class，所以需要 new 一个实例
   let instance = new type(props);
-  // 将实例挂载到 VNode 上
-  VNode.classInstance = instance;
   // 调用 render 方法，得到 VNode
   let renderVNode = instance.render();
   // 将类组件的 VNode 保存到 ClassComponentInstance 上，方便后面更新使用
   instance.oldVNode = renderVNode;
+  // 将实例挂载到 VNode 上
+  VNode.classInstance = instance;
   // 将实例挂载赋值给 ref
   ref && (ref.current = instance);
   // 返回 null 就不需要渲染了

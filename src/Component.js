@@ -56,6 +56,22 @@ class Updater {
 
     // 清空 pendingStates
     pendingStates.length = 0;
+
+    // 访问静态方法可以通过 constructor
+    if (ClassComponentInstance.constructor.getDerivedStateFromProps) {
+      // 拿到合并 props 后的 state
+      let newState =
+        // 调用 getDerivedStateFromProps 生命周期函数
+        ClassComponentInstance.constructor.getDerivedStateFromProps(
+          // 传入的 props
+          nextProps,
+          // 之前的 state
+          ClassComponentInstance.state
+        );
+      // 将 newState 合并到 nextState 中
+      nextState = { ...nextState, ...newState };
+    }
+
     // 调用 shouldComponentUpdate 生命周期函数，如果返回 true，将 isShouldUpdate 设置为 false
     if (
       ClassComponentInstance.shouldComponentUpdate &&
