@@ -1,71 +1,81 @@
-import React from "react";
-import ReactDOM from "react-dom";
-
-class DerivedState extends React.Component {
+import React from "./react";
+import ReactDOM from "./react-dom";
+class ScrollingList extends React.Component {
+  counter = 0;
+  isAppend = true;
+  intervalId = 0;
   constructor(props) {
     super(props);
-    this.state = { prevUserId: "zhangsanfeng", email: "zhangsanfeng@xx.com" };
+    this.listRef = React.createRef();
+    this.state = { list: [] };
   }
-
-  shouldComponentUpdate(nextProps, nextState) {
-    console.log("shouldComponentUpdate");
-    return true;
-  }
-
-  // https://reactjs.org/docs/react-component.html#static-getderivedstatefromprops
-  // 1.在render函数执行之前调用
-  // 2.返回一个对象则更新state，返回null表示没有任何更新
-  // 3.使用这个函数的场景很少，当state需要随着props的变化而变化的时候才会用到，其实相当于一种缓冲机制
-  // 4.如果需要使用的时候，可以考虑用memoization技术
-  // memoization技术介绍：https://reactjs.org/blog/2018/06/07/you-probably-dont-need-derived-state.html#what-about-memoization
-  // 5.静态函数不能访问类实例，因此多个类组件可以抽取为纯函数的公用逻辑
-  // 6.该函数在初始化挂载，更新，调用forceUpdate都会执行，与场景无关，而UNSAFE_componentWillReceiveProps只在由于父组件导致的更新的场景下调用，组件内的setState导致的更新不会调用
-  static getDerivedStateFromProps(nextProps, prevState) {
-    console.log(nextProps, prevState, "getDerivedStateFromProps");
-    // Any time the current user changes,
-    // Reset any parts of state that are tied to that user.
-    // In this simple example, that's just the email.
-    if (nextProps.userId !== prevState.prevUserId) {
-      return {
-        prevUserId: nextProps.userId,
-        email: nextProps.userId + "@xx.com",
-      };
+  // https://reactjs.org/docs/react-component.html#getsnapshotbeforeupdate
+  // 1.该函数在render函数执行完成生成真实DOM后，DOM挂载到页面前执行
+  // 2.该函数使得组件在DOM发生变化之前可以获取一些信息
+  // 3.该函数返回的任何值都会作为componentDidUpdate的第三个参数传入
+  // 4.该生命周期函数并不常用，仅仅在一些特定UI变化的场景才会用到
+  getSnapshotBeforeUpdate(prevProps, prevState) {
+    // Are we adding new items to the list?
+    // Capture the scroll position so we can adjust scroll later.
+    if (prevState.list.length < this.state.list.length) {
+      const list = this.listRef.current;
+      return list.scrollHeight - list.scrollTop;
     }
     return null;
   }
 
-  render() {
-    return (
-      <div>
-        <h1>Email:</h1>
-        <h2>{this.state.email}</h2>
-      </div>
-    );
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    // If we have a snapshot value, we've just added new items.
+    // Adjust scroll so these new items don't push the old ones out of view.
+    // (snapshot here is the value returned from getSnapshotBeforeUpdate)
+    if (snapshot !== null) {
+      const list = this.listRef.current;
+      list.scrollTop = list.scrollHeight - snapshot;
+    }
   }
-}
 
-class ParentClass extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { id: "zhangsanfeng" };
-  }
-  changUserId = () => {
-    this.setState({
-      id: "dongfangbubai",
-    });
+  appendData = () => {
+    if (this.isAppend) {
+      this.intervalId = setInterval(() => {
+        this.setState({
+          list: [...this.state.list, this.counter++],
+        });
+      }, 1000);
+    } else {
+      clearInterval(this.intervalId);
+    }
+    this.isAppend = !this.isAppend;
   };
+
   render() {
     return (
       <div>
         <input
           type="button"
-          value="点击改变UserId"
-          onClick={() => this.changUserId()}
+          onClick={() => this.appendData()}
+          value={"追加/暂停追加数据"}
         />
-        <DerivedState userId={this.state.id} />
+        <div
+          ref={this.listRef}
+          style={{ overflow: "auto", height: "400px", background: "#efefef" }}>
+          {this.state.list.map((item) => {
+            return (
+              <div
+                key={item}
+                style={{
+                  height: "60px",
+                  padding: "10px",
+                  marginTop: "10px",
+                  border: "1px solid blue",
+                  borderRadius: "6px",
+                }}>
+                {item}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
 }
-
-ReactDOM.render(<ParentClass />, document.getElementById("root"));
+ReactDOM.render(<ScrollingList />, document.getElementById("root"));

@@ -1,4 +1,5 @@
 import { findDOMByVNode, updateDomTree } from "./react-dom";
+import { deepClone } from "./utils";
 
 // 批量更新队列
 export let updaterQueue = {
@@ -47,8 +48,8 @@ class Updater {
     // 用来控制是否需要调用 update 方法
     let isShouldUpdate = true;
     // 拿到 preState 和 preProps
-    const preState = ClassComponentInstance.state;
-    const preProps = ClassComponentInstance.props;
+    const preState = deepClone(ClassComponentInstance.state);
+    const preProps = deepClone(ClassComponentInstance.props);
     // state 合并，只合并第一层
     let nextState = pendingStates.reduce((state, partialState) => {
       return { ...state, ...partialState };
@@ -113,11 +114,17 @@ export class Component {
     let oldDOM = findDOMByVNode(oldVNode);
     // 调用 render 方法，得到新的 VNode
     let newVNode = this.render();
+    // 调用 getSnapShotBeforeUpdate 生命周期函数，传入 preProps 和 preState
+    let snapshot =
+      this.getSnapshotBeforeUpdate &&
+      this.getSnapshotBeforeUpdate(preProps, preState);
     // 更新 DOM，并将新的 DOM 挂载到页面上
     updateDomTree(oldVNode, newVNode, oldDOM);
     // 将新的 VNode 挂载到 Component 上
     this.oldVNode = newVNode;
     // 如果存在生命周期函数 componentDidUpdate 函数，调用，并传入 preProps 和 preState
-    if (this.componentDidUpdate) this.componentDidUpdate(preProps, preState);
+    if (this.componentDidUpdate)
+      // 将 snapshot 作为第三个参数传递给 componentDidUpdate
+      this.componentDidUpdate(preProps, preState, snapshot);
   }
 }
