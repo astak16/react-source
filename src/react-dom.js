@@ -5,6 +5,8 @@ import {
   REACT_TEXT,
   CREATE,
   MOVE,
+  REACT_MEMO,
+  shallowCompare,
 } from "./utils";
 let classComponentInstance;
 function render(VNode, containerDOM) {
@@ -22,6 +24,11 @@ function mount(VNode, containerDOM) {
 function createDOM(VNode) {
   let { type, props, $$typeof, ref } = VNode;
   let dom;
+  // 处理 memo 对象
+  // <MemoChild /> 这不是 memo 对象，这是 jsx 对象，这里会递归处理，第二次进来时，type 是 memo 对象
+  if (type && type.$$typeof === REACT_MEMO) {
+    return getDomByMemoFunctionComponent(VNode);
+  }
   // 处理 forwardRef
   if (type && type.$$typeof === REACT_FORWARD_REF) {
     return getDomByForwardRefFunction(VNode);
@@ -131,8 +138,11 @@ function getDomByFunctionComponent(VNode) {
   let renderVNode = type(props);
   // 有时候函数组件返回的是 null，这时候就不需要渲染了
   if (!renderVNode) return null;
-  // 函数组件返回的事 VNode，所以需要递归处理
-  return createDOM(renderVNode);
+  VNode.oldRenderVNode = renderVNode;
+  // 函数组件返回的是 VNode，所以需要递归处理
+  let dom = createDOM(renderVNode);
+  VNode.dom = dom;
+  return dom;
 }
 
 function getDomByForwardRefFunction(VNode) {
@@ -144,7 +154,20 @@ function getDomByForwardRefFunction(VNode) {
   // 将 renderVNode 挂载到 VNode.oldRenderVNode 上
   VNode.oldRenderVNode = renderVNode;
   // 函数组件返回的是 VNode，所以需要递归处理
-  return createDOM(renderVNode);
+  let dom = createDOM(renderVNode);
+  VNode.dom = dom;
+  return dom;
+}
+
+function getDomByMemoFunctionComponent(VNode) {
+  let { type, props } = VNode;
+  // 和函数不一样的是：type 是 memo 对象，type.type 才是函数组件
+  let renderVNode = type.type(props);
+  if (!renderVNode) return null;
+  VNode.oldRenderVNode = renderVNode;
+  let dom = createDOM(renderVNode);
+  VNode.dom = dom;
+  return dom;
 }
 
 export function findDOMByVNode(VNode) {
@@ -210,6 +233,8 @@ function deepDOMDiff(oldVNode, newVNode) {
     FUNCTION_COMPONENT: typeof oldVNode.type === "function",
     // 文本节点，type 是一个字符串，值是 REACT_TEXT
     TEXT: oldVNode.type === REACT_TEXT,
+    // memo 节点，type 是一个 memo 对象，需要拿到 $$typeof 属性，
+    MEMO: oldVNode.type.$$typeof === REACT_MEMO,
   };
   const DIFF_TYPE = Object.keys(diffTypeMap).filter(
     (key) => diffTypeMap[key]
@@ -237,6 +262,10 @@ function deepDOMDiff(oldVNode, newVNode) {
       // 更新文本节点的值
       newVNode.dom.textContent = newVNode.props.text;
       break;
+    case "MEMO":
+      // 处理 memo 节点
+      updateMemoFunctionComponent(oldVNode, newVNode);
+      break;
     default:
       break;
   }
@@ -262,6 +291,27 @@ function updateFunctionComponent(oldVNode, newVNode) {
   updateDomTree(oldVNode.oldRenderVNode, newRenderVNode, oldDOM);
   // 将 newRenderVNode 赋值给 newVNode.oldRenderVNode
   newVNode.oldRenderVNode = newRenderVNode;
+}
+
+function updateMemoFunctionComponent(oldVNode, newVNode) {
+  let { type } = oldVNode;
+  // 如果 type.compare 不存在，我们则使用 shallowCompare 函数进行浅比较，shallowCompare 返回 false 时，我们才进行重新渲染
+  // 如果 type.compare 且 type.compare 返回 false 时，我们才进行重现渲染
+  if (
+    (!type.compare && !shallowCompare(oldVNode.props, newVNode.props)) ||
+    (type.compare && !type.compare(oldVNode.props, newVNode.props))
+  ) {
+    const oldDOM = (newVNode.dom = findDOMByVNode(oldVNode));
+    if (!oldDOM) return;
+    const { type } = newVNode;
+    // 和函数不一样的是：type 是 memo 对象，type.type 才是函数组件
+    let renderVNode = type.type(newVNode.props);
+    updateDomTree(oldVNode.oldRenderVNode, renderVNode, oldDOM);
+    newVNode.oldRenderVNode = renderVNode;
+  } else {
+    // 不重新渲染
+    newVNode.oldRenderVNode = oldVNode.oldRenderVNode;
+  }
 }
 
 function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {

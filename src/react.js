@@ -3,6 +3,7 @@ import {
   REACT_FORWARD_REF,
   toVNode,
   shallowCompare,
+  REACT_MEMO,
 } from "./utils";
 import { Component } from "./Component";
 
@@ -55,10 +56,19 @@ class PureComponent extends Component {
   }
 }
 
+function memo(type, compare) {
+  return {
+    $$typeof: REACT_MEMO,
+    type,
+    compare,
+  };
+}
+
 export default {
   createElement,
   Component,
   createRef,
   forwardRef,
   PureComponent,
+  memo,
 };
