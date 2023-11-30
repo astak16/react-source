@@ -12,3 +12,4 @@
 2. [函数组件和类组件及 ref 和 setState 的实现](./docs/函数组件和类组件及ref和setState的实现.md)
 3. [优化渲染过程之 DomDiff](./docs/优化渲染过程之DomDiff.md)
 4. [类组件增强——生命周期函数 ](./docs/类组件增强——生命周期函数.md)
+5. [性能优化—— PureComponent 和 memo](./docs/性能优化——PureComponent和memo.md)
