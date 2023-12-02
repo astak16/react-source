@@ -64,6 +64,7 @@ function memo(type, compare) {
   };
 }
 
+export * from "./hooks";
 export default {
   createElement,
   Component,

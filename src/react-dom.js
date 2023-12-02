@@ -1,4 +1,5 @@
 import { addEvent } from "./event";
+import { resetHookIndex } from "./hooks";
 import {
   REACT_ELEMENT,
   REACT_FORWARD_REF,
@@ -9,8 +10,19 @@ import {
   shallowCompare,
 } from "./utils";
 let classComponentInstance;
+// 声明一个变量，这个变量是用来保存更新 DOM 的函数
+export let emitUpdateForHooks;
+
 function render(VNode, containerDOM) {
   mount(VNode, containerDOM);
+  // hooks 用来更新页面，在调用 render 时赋值
+  emitUpdateForHooks = function () {
+    // 重置 hookIndex 为 0
+    resetHookIndex();
+    // 调用 updateDomTree 函数，传入 VNode 和 VNode 对应的 DOM
+    // 这里传入的 VNode 是根元素
+    updateDomTree(VNode, VNode, findDOMByVNode(VNode));
+  };
 }
 
 function mount(VNode, containerDOM) {
