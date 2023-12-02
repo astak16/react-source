@@ -1,29 +1,81 @@
-import React, { useReducer, useState } from "./react";
-import reactDom from "./react-dom";
+import React, { useState, useEffect } from "./react";
+import ReactDOM from "./react-dom";
 
-function reducer(state, action) {
-  if (action.type === "incremented_age") {
-    return {
-      age: state.age + 1,
-    };
-  }
-  throw Error("Unknown action.");
+export function createConnection(serverUrl, roomId) {
+  // A real implementation would actually connect to the server
+  return {
+    connect() {
+      console.log(
+        '✅ Connecting to "' + roomId + '" room at ' + serverUrl + "..."
+      );
+    },
+    disconnect() {
+      console.log('❌ Disconnected from "' + roomId + '" room at ' + serverUrl);
+    },
+  };
 }
 
-function Counter() {
-  const [count, setCount] = useState(0);
-  const [state, dispatch] = useReducer(reducer, { age: 42 });
+function ChatRoom({ roomId }) {
+  const [serverUrl, setServerUrl] = useState("https://localhost:1234");
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.connect();
+    return () => {
+      connection.disconnect();
+    };
+  }, [roomId, serverUrl]);
+
+  useEffect(() => {
+    console.log("useEffect no deps");
+  });
+
+  useEffect(() => {
+    console.log("useEffect with serverUrl");
+  }, [serverUrl]);
+
+  useEffect(() => {
+    console.log("useEffect with roomId");
+  }, [roomId]);
+
+  useEffect(() => {
+    console.log("useEffect with empty deps");
+  }, []);
 
   return (
     <div>
-      <button
-        onClick={() => {
-          dispatch({ type: "incremented_age" });
-        }}>
-        Increment age
-      </button>
-      <p>Hello! You are {state.age}.</p>
+      <label>
+        Server URL:{" "}
+        <input
+          value={serverUrl}
+          onInput={(e) => setServerUrl(e.target.value)}
+        />
+      </label>
+      <h1>Welcome to the {roomId} room!</h1>
     </div>
   );
 }
-reactDom.render(<Counter />, document.getElementById("root"));
+
+export default function App() {
+  const [roomId, setRoomId] = useState("general");
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label>
+        Choose the chat room:{" "}
+        <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+          <option value="general">general</option>
+          <option value="travel">travel</option>
+          <option value="music">music</option>
+        </select>
+      </label>
+      <button onClick={() => setShow(!show)}>
+        {show ? "Close chat" : "Open chat"}
+      </button>
+      {show && <hr />}
+      {show && <ChatRoom roomId={roomId} />}
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));

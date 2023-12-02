@@ -92,6 +92,10 @@ function mountArray(children, parent) {
   if (!Array.isArray(children)) return;
   // 遍历数组
   for (let i = 0; i < children.length; i++) {
+    if (!children[i]) {
+      children.splice(i, 1);
+      continue;
+    }
     // 为每一个子元素添加 index 属性
     children[i].index = i;
     // 如果是对象，调用 mount 函数，递归处理
