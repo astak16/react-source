@@ -25,3 +25,18 @@ export function useState(initialState) {
   // hookIndex++ 这里是先从 states 中取出当前的状态，然后再将 hookIndex 加 1
   return [states[hookIndex++], setState];
 }
+
+// 接收两个参数 reducer 和 initialState
+export function useReducer(reducer, initialState) {
+  states[hookIndex] = states[hookIndex] || initialState;
+  let currentIndex = hookIndex;
+  function dispatch(action) {
+    // 和 useState 不同的地方
+    // 这里是调用 reducer 函数，传入当前的状态和 action
+    // reducer 函数返回值是新的状态
+    states[currentIndex] = reducer(states[currentIndex], action);
+    emitUpdateForHooks();
+  }
+
+  return [states[hookIndex++], dispatch];
+}
