@@ -84,3 +84,8 @@ export function useLayoutEffect(effectFunction, deps) {
   }
   hookIndex++;
 }
+
+export function useRef(initialValue) {
+  states[hookIndex] = states[hookIndex] || { current: initialValue };
+  return states[hookIndex++];
+}
