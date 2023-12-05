@@ -1,19 +1,37 @@
-import React, { useRef } from "./react";
+import React, { useRef, useImperativeHandle } from "./react";
 import ReactDOM from "./react-dom";
 
-const Form = function () {
+const MyInput = React.forwardRef(function MyInput(props, ref) {
   const inputRef = useRef(null);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus() {
+        inputRef.current.focus();
+      },
+    }),
+    []
+  );
+
+  return <input {...props} ref={inputRef} />;
+});
+
+function Form() {
+  const ref = useRef(null);
+
   function handleClick() {
-    inputRef.current.focus();
+    ref.current.focus();
+    ref.current.value = "Hello, world!";
   }
 
   return (
-    <div>
-      <input ref={inputRef} />
-      <button onClick={handleClick}>Focus the input</button>
-    </div>
+    <form>
+      <MyInput label="Enter your name:" ref={ref} />
+      <button type="button" onClick={handleClick}>
+        Edit
+      </button>
+    </form>
   );
-};
-
+}
 ReactDOM.render(<Form />, document.getElementById("root"));

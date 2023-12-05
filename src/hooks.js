@@ -89,3 +89,8 @@ export function useRef(initialValue) {
   states[hookIndex] = states[hookIndex] || { current: initialValue };
   return states[hookIndex++];
 }
+
+export function useImperativeHandle(ref, dataFactory) {
+  // 将 dataFactory 赋值给 ref.current
+  ref.current = dataFactory();
+}
