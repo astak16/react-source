@@ -1,37 +1,33 @@
-import React, { useRef, useImperativeHandle } from "./react";
-import ReactDOM from "./react-dom";
+import React, { useState, useMemo, useCallback } from "react";
+import ReactDOM from "react-dom";
 
-const MyInput = React.forwardRef(function MyInput(props, ref) {
-  const inputRef = useRef(null);
+function Child({ data, handleClick }) {
+  // console.log("render Child");
+  return <button onClick={handleClick}>Button Number: {data.number}</button>;
+}
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      focus() {
-        inputRef.current.focus();
-      },
-    }),
-    []
-  );
-
-  return <input {...props} ref={inputRef} />;
-});
-
-function Form() {
-  const ref = useRef(null);
-
-  function handleClick() {
-    ref.current.focus();
-    ref.current.value = "Hello, world!";
-  }
+function App() {
+  // console.log("render App");
+  const [name, setName] = useState("yangyitao");
+  const [number, setNumber] = useState(0);
+  let data = useMemo(() => {
+    console.log("useMemo");
+    return { number };
+  }, [number]);
+  let handleClick = useCallback(() => {
+    console.log("useCallback");
+    setNumber(number + 1);
+  }, [number]);
 
   return (
-    <form>
-      <MyInput label="Enter your name:" ref={ref} />
-      <button type="button" onClick={handleClick}>
-        Edit
-      </button>
-    </form>
+    <div>
+      <input
+        type="text"
+        value={name}
+        onInput={(event) => setName(event.target.value)}
+      />
+      <Child data={data} handleClick={handleClick} />
+    </div>
   );
 }
-ReactDOM.render(<Form />, document.getElementById("root"));
+ReactDOM.render(<App />, document.getElementById("root"));

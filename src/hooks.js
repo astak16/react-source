@@ -94,3 +94,39 @@ export function useImperativeHandle(ref, dataFactory) {
   // 将 dataFactory 赋值给 ref.current
   ref.current = dataFactory();
 }
+
+export function useMemo(dataFactory, deps) {
+  // 从 states 中取出 hookIndex 位置的 state
+  // 这里为啥不用 currentIndex 进行缓存，因为这里不需要改变 states 中的值
+  let [preData, preDeps] = states[hookIndex] || [null, null];
+  // 依赖不存在，或者依赖相比与上一次有变化时更新，需要执行 dataFactory 函数
+  if (
+    !states[hookIndex] ||
+    (deps && deps.some((item, index) => item !== preDeps[index]))
+  ) {
+    // 执行 dataFactory 函数，并拿到 dataFactory 函数返回的数据 newData
+    let newData = dataFactory();
+    // 将 newData 和 deps 保存到 states[hookIndex] 中
+    // 在保存前需要先判断一下 deps 是否存在，如果 deps 不存在，那么 states[hookInex] 就是 null
+    states[hookIndex++] = deps ? [newData, deps] : null;
+    // 将 newData 返回出去
+    return newData;
+  }
+  // 依赖没有变化，不需要执行 dataFactory 函数，直接返回上一次 dataFactory 函数返回的数据 preData
+  hookIndex++;
+  return preData;
+}
+
+export function useCallback(callback, deps) {
+  let [preCallback, preDeps] = states[hookIndex] || [null, null];
+  if (
+    !states[hookIndex] ||
+    (deps && deps.some((item, index) => item !== preDeps[index]))
+  ) {
+    // 和 useMemo 区别这里，callback 无需执行，直接保存起来，并将 callback 返回出去
+    states[hookIndex++] = deps ? [callback, deps] : null;
+    return callback;
+  }
+  hookIndex++;
+  return preCallback;
+}
