@@ -2,6 +2,7 @@
 
 # dependencies
 /simple-react/node_modules
+/react18-core/node_modules
 /.pnp
 .pnp.js
 
