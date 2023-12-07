@@ -1,8 +1,10 @@
-// import * as React from "react";
-const rest = { key: "key" };
-let ttt = (
-  <div style={{ color: "red" }} key="22" rest>
-    uccs
+import { createRoot } from "react-dom/client";
+let element = (
+  <div>
+    <div>uccs</div>
+    <div>react 源码学习</div>
   </div>
 );
-console.log(ttt);
+const root = createRoot(document.getElementById("root"));
+root.render(element);
+console.log("index.jsx", element);
