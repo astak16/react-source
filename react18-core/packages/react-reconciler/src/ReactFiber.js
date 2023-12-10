@@ -45,3 +45,40 @@ export function createHostRootFiber() {
   // 创建一个 RootFiber
   return createFiber(HostRoot, null, null);
 }
+
+// current 是 RootFiber
+// pendingProps 是还未更新的属性，比如 children，style 等，初次渲染时是 null
+// 返回
+//    初次渲染时，current.alternate 是 null，所以 workInProgress 是一个新的 fiber 树，它的 alternate 是 current，也就是 RootFiber
+export function createWorkInProgress(current, pendingProps) {
+  // workInProgress 是一个新的 fiber 树
+  // current.alternate 指向的是上一次渲染的 fiber 树
+  let workInProgress = current.alternate;
+  // 如果 workInProgress 不存在，那么就创建一个新的 fiber 树
+  if (workInProgress === null) {
+    // 创建一个新的 fiber 树
+    workInProgress = createFiber(current.tag, pendingProps, current.key);
+    workInProgress.type = current.type;
+    // 创建的 workInProgress 不存在 stateNode 属性
+    workInProgress.stateNode = current.stateNode;
+    // 创建时 workInProgress 的 alternate 不存在
+    // 所以 workInProgress.alternate 是 RootFiber
+    workInProgress.alternate = current;
+  } else {
+    workInProgress.pendingProps = pendingProps;
+    workInProgress.type = current.type;
+    // 创建的 workInProgress，它的属性 flags 和 subtreeFlags 都是 NoFlags
+    // 这里是为了保持统一，都将这个值设置为 NoFlags
+    workInProgress.flags = NoFlags;
+    workInProgress.subtreeFlags = NoFlags;
+  }
+  // 将 current 中的属性一个个赋值给 workInProgress
+  workInProgress.child = current.child;
+  workInProgress.memoizedProps = current.memoizedProps;
+  workInProgress.memoizedState = current.memoizedState;
+  workInProgress.updateQueue = current.updateQueue;
+  workInProgress.sibling = current.sibling;
+  workInProgress.index = current.index;
+
+  return workInProgress;
+}
