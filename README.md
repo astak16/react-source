@@ -14,3 +14,4 @@
 4. [类组件增强——生命周期函数 ](./docs/类组件增强——生命周期函数.md)
 5. [性能优化—— PureComponent 和 memo](./docs/性能优化——PureComponent和memo.md)
 6. [hooks——useEffect、useState、useMemo 等源码实现](./docs/hooks——useEffect、useState、useMemo等源码实现.md)
+7. [beginWork 前的准备工作：jsxDEV、createRoot、render 源码实现](./docs/beginWork前的准备工作：jsxDEV、createRoot、render源码实现.md)
