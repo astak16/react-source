@@ -1,4 +1,8 @@
-import { HostRoot } from "react-reconciler/src/ReactWorkTags";
+import {
+  HostComponent,
+  HostRoot,
+  IndeterminateComponent,
+} from "react-reconciler/src/ReactWorkTags";
 import { NoFlags } from "./ReactFiberFlags";
 
 export function FiberNode(tag, pendingProps, key) {
@@ -81,4 +85,27 @@ export function createWorkInProgress(current, pendingProps) {
   workInProgress.index = current.index;
 
   return workInProgress;
+}
+
+export function createFiberFromElement(element) {
+  const { type, props: pendingProps, key } = element;
+  return createFiberFromTypeAndProps(type, key, pendingProps);
+}
+
+function createFiberFromTypeAndProps(type, key, pendingProps) {
+  // 初始设为未知类型
+  let tag = IndeterminateComponent;
+  // 如果 type 是 string 类型，就将 tag 设置为 HostComponent
+  if (typeof type === "string") {
+    tag = HostComponent;
+  }
+  // 创建 fiber
+  const fiber = createFiber(tag, pendingProps, key);
+  // 将 type 赋值给 fiber.type
+  fiber.type = type;
+  return fiber;
+}
+
+export function createFiberFromText(content) {
+  return createFiber(HostText, content, null);
 }

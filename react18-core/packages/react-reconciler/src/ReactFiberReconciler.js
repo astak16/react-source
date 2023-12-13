@@ -16,8 +16,8 @@ export function updateContainer(element, container) {
   // 将 element 添加到 update.payload
   update.payload = { element };
   // 将 update 添加到 current.updateQueue
-  // 拿到 fiber 所在应用的根节点
+  // 拿到 fiber 所在应用的根节点，也就是 FiberRoot
   const root = enqueueUpdate(current, update);
-  // 从根节点开始调度
+  // 从根节点开始调度，也就是 FiberRoot
   scheduleUpdateOnFiber(root);
 }

@@ -1,3 +1,4 @@
+import assign from "shared/assign";
 import { markUpdateLaneFromFiberToRoot } from "./ReactFiberConcurrentUpdates";
 
 export function initializeUpdateQueue(fiber) {
@@ -42,4 +43,41 @@ export function enqueueUpdate(fiber, update) {
   updateQueue.shared.pending = update;
   // 给当前 fiber 设置优先级，并返回 FiberRoot
   return markUpdateLaneFromFiberToRoot(fiber);
+}
+
+export function processUpdateQueue(workInProgress) {
+  // workInProgress.updateQueue 是来自 current.updateQueue
+  const queue = workInProgress.updateQueue;
+  // 从 updateQueue 中取出 pending
+  // 取出的 pending 是 lastPendingUpdate
+  const pendingQueue = queue.shared.pending;
+  if (pendingQueue !== null) {
+    // 取出后，将 updateQueue 清空
+    queue.shared.pending = null;
+    // lastPendingUpdate 是最后进入队列的 update
+    // 链表结构：updateD -> updateA -> updateB -> updateC -> updateD
+    const lastPendingUpdate = pendingQueue;
+    // firstPendingUpdate 是最先进入队列的 update
+    const firstPendingUpdate = lastPendingUpdate.next;
+    // 断开 lastPendingUpdate 和 firstPendingUpdate 的联系，是为了在循环遍历 update 时不会死循环
+    lastPendingUpdate.next = null;
+    let newState = workInProgress.memoizedState;
+    // 从 firstPendingUpdate 开始遍历，一直遍历到 lastPendingUpdate
+    // 将每个 update 的 payload 合并到 newState 中
+    // update 结构是 { payload: { element } }
+    // 最后 newState 中有 lastPendingUpdate 中的 element
+    let update = firstPendingUpdate;
+    while (update) {
+      newState = getStateFromUpdate(update, newState);
+      update = update.next;
+    }
+
+    // 最后将 newState 赋值给 memoizedState
+    // workInProgress.memoizedState 是处理后的 state
+    workInProgress.memoizedState = newState;
+  }
+}
+function getStateFromUpdate(update, prevState) {
+  const { payload } = update;
+  return assign({}, prevState, payload);
 }
