@@ -1,6 +1,7 @@
 import { REACT_ELEMENT_TYPE } from "shared/ReactSymbols";
 import { createFiberFromElement, createFiberFromText } from "./ReactFiber";
 import { Placement } from "./ReactFiberFlags";
+import isArray from "shared/isArray";
 
 function createChildReconciler(shouldTrackSideEffects) {
   // returnFiber 是父节点，也就是 workInProgress
@@ -105,6 +106,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     if (isArray(newChild)) {
       return reconcileChildrenArray(returnFiber, currentFirstFiber, newChild);
     }
+    return null;
   }
 
   return reconcileChildFibers;

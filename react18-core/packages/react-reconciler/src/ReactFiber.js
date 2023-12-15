@@ -1,6 +1,7 @@
 import {
   HostComponent,
   HostRoot,
+  HostText,
   IndeterminateComponent,
 } from "react-reconciler/src/ReactWorkTags";
 import { NoFlags } from "./ReactFiberFlags";
