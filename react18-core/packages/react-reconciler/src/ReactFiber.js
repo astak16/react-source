@@ -1,9 +1,4 @@
-import {
-  HostComponent,
-  HostRoot,
-  HostText,
-  IndeterminateComponent,
-} from "react-reconciler/src/ReactWorkTags";
+import { HostComponent, HostRoot, HostText, IndeterminateComponent } from "react-reconciler/src/ReactWorkTags";
 import { NoFlags } from "./ReactFiberFlags";
 
 export function FiberNode(tag, pendingProps, key) {
@@ -12,6 +7,7 @@ export function FiberNode(tag, pendingProps, key) {
   this.type = null;
   // 目前可以理解为真实 dom 节点
   this.stateNode = null;
+  this.child = null;
 
   // 指向父节点
   this.return = null;

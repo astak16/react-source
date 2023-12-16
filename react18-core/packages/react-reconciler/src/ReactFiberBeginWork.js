@@ -8,11 +8,7 @@ function reconcileChildren(current, workInProgress, nextChildren) {
   if (current === null) {
     workInProgress.child = mountChildFibers(workInProgress, null, nextChildren);
   } else {
-    workInProgress.child = reconcileChildFibers(
-      workInProgress,
-      current.child,
-      nextChildren
-    );
+    workInProgress.child = reconcileChildFibers(workInProgress, current.child, nextChildren);
   }
 }
 
