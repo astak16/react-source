@@ -18,3 +18,4 @@
 - `react@18`
   1. [beginWork 前的准备工作：jsxDEV、createRoot、render 源码实现](./docs/beginWork前的准备工作：jsxDEV、createRoot、render源码实现.md)
   2. [beginWork 工作原理](./docs/beginWork工作原理.md)
+  3. [4 张图带你看懂 beginWork 和 completeWork 工作过程](./docs/4张图带你看懂beginWork和completeWork工作过程.md)
