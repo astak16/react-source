@@ -29,7 +29,7 @@ function setInitialDOMProperties(tag, domElement, nextProps) {
         }
       } else {
         // 处理其他属性
-        setValueForProperty(domElement, nextProp);
+        setValueForProperty(domElement, propKey, nextProp);
       }
     }
   }

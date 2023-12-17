@@ -1,7 +1,7 @@
 import { NoFlags } from "./ReactFiberFlags";
 import { HostComponent, HostRoot, HostText } from "./ReactWorkTags";
 import {
-  appendInitialChildren,
+  appendInitialChild,
   createInstance,
   createTextInstance,
   finalizeInitialChildren,
@@ -14,7 +14,7 @@ function appendAllChildren(parent, workInProgress) {
   while (node) {
     // 如果子节点是 HostComponent 或者 HostText，就追加到父节点上
     if (node.tag === HostComponent || node.tag === HostText) {
-      appendInitialChildren(parent, node.stateNode);
+      appendInitialChild(parent, node.stateNode);
     } else if (node.child !== null) {
       // 子节点是组件
       // 组件没有真实的 DOM 节点，组件的真实节点在 child 上

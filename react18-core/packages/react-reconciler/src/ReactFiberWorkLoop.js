@@ -2,6 +2,8 @@ import { scheduleCallback } from "scheduler";
 import { createWorkInProgress } from "./ReactFiber";
 import { beginWork } from "./ReactFiberBeginWork";
 import { completeWork } from "./ReactFiberCompleteWork";
+import { MutationMask, NoFlags } from "./ReactFiberFlags";
+import { commitMutationEffectsOnFiber } from "./ReactFiberCommitWork";
 
 // completeWork 和 beginWork 执行 log 调试
 const __DEBUG__ = false;
@@ -40,7 +42,8 @@ function performConcurrentWorkOnRoot(root) {
   // 所以就将 alternate 赋值给 finishedWork
   root.finishedWork = root.current.alternate;
   // 进入 commitWork 阶段
-  // commitRoot(root); // commitWork 阶段
+  // 进入 commitWork 阶段，然后将 root 传给 commitRoot，由 commitRoot 渲染在页面上
+  commitRoot(root); // commitWork 阶段
 }
 
 // root 是 FiberRoot
@@ -49,6 +52,32 @@ function renderRootSync(root) {
   prepareFreshStack(root);
   // 循环遍历 workInProgress 工作树，调用 performUnitOfWork 函数
   workLoopSync();
+}
+
+function commitRoot(root) {
+  // 取出已经过 beginWork 和 completeWork 处理过的 Fiber 树
+  // 这个 finishedWork 是 RootFiber
+  const { finishedWork } = root;
+  // 查看 RootFiber 的子 Fiber 是否有处理
+  /**
+   * Placement:    0b0000000010;
+   * MutationMask: 0b0000000110;
+   * NoFlags:      0b0000000000;
+   *
+   *   0b0000000010
+   * & 0b0000000110
+   * --------------
+   *   0b0000000010 !== 0b0000000000
+   */
+  const subtreeHasEffects = (finishedWork.subtreeFlags & MutationMask) != NoFlags;
+  // 查看 RootFiber 是否有处理
+  const rootHasEffect = (finishedWork.flags & MutationMask) != NoFlags;
+  if (subtreeHasEffects || rootHasEffect) {
+    // 有处理就进入 commitMutationEffectsOnFiber 函数
+    commitMutationEffectsOnFiber(finishedWork, root);
+  }
+  // 经过 commitWork 处理后，将替换页面中的 RootFiber
+  root.current = finishedWork;
 }
 
 // root 是 FiberRoot

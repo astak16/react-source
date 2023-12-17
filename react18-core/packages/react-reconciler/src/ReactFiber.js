@@ -65,6 +65,7 @@ export function createWorkInProgress(current, pendingProps) {
     // 创建时 workInProgress 的 alternate 不存在
     // 所以 workInProgress.alternate 是 RootFiber
     workInProgress.alternate = current;
+    current.alternate = workInProgress;
   } else {
     workInProgress.pendingProps = pendingProps;
     workInProgress.type = current.type;
