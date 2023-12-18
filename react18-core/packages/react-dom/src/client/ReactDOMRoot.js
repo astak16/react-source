@@ -1,7 +1,5 @@
-import {
-  createContainer,
-  updateContainer,
-} from "react-reconciler/src/ReactFiberReconciler";
+import { listenAllSupportedEvents } from "react-dom-bindings/src/event/DOMPluginEventSystem";
+import { createContainer, updateContainer } from "react-reconciler/src/ReactFiberReconciler";
 
 function ReactDOMRoot(internalRoot) {
   this._internalRoot = internalRoot;
@@ -24,5 +22,7 @@ export function createRoot(container) {
   // container 是页面的真是节点：document.getElementById("root")
   // root 是 FiberRoot
   const root = createContainer(container);
+  // container 是 div#root，用来绑定事件
+  listenAllSupportedEvents(container);
   return new ReactDOMRoot(root);
 }

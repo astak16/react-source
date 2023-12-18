@@ -1,12 +1,12 @@
 import { createRoot } from "react-dom/client";
 
-let MyComponent1 = () => {
-  return <div>MyComponent-1</div>;
-};
+// let MyComponent1 = () => {
+//   return <div>MyComponent-1</div>;
+// };
 
-let MyComponent2 = () => {
-  return <div>MyComponent-2</div>;
-};
+// let MyComponent2 = () => {
+//   return <div>MyComponent-2</div>;
+// };
 
 // let element = (
 //   <div className="first">
@@ -33,19 +33,42 @@ let MyComponent2 = () => {
 //   </div>
 // );
 
-let element = (
-  <div className="first">
-    <div className="first-1">first-1</div>
-    <MyComponent1 />
-    <MyComponent2 />
-    <div className="first-2">first2</div>
-  </div>
-);
+// let element = (
+//   <div className="first">
+//     <div className="first-1">first-1</div>
+//     <MyComponent1 />
+//     <MyComponent2 />
+//     <div className="first-2">first2</div>
+//   </div>
+// );
 
-function ElementComponent() {
-  return element;
-}
+// function ElementComponent() {
+//   return element;
+// }
+
+// const root = createRoot(document.getElementById("root"));
+// root.render(<ElementComponent />);
+// console.log("index.jsx", element);
 
 const root = createRoot(document.getElementById("root"));
-root.render(<ElementComponent />);
-console.log("index.jsx", element);
+function FunctionComponent() {
+  return (
+    <div
+      onClick={(event) => console.log(`ParentNodeBubble`, event)}
+      onClickCapture={(event) => {
+        console.log(`ParentNodeCapture`, event);
+      }}>
+      <div>react 源码学习</div>
+      <div
+        onClick={(event) => {
+          console.log(`ChildNodeBubble`, event);
+        }}
+        onClickCapture={(event) => console.log(`ChildNodeCapture`, event)}>
+        手写 react 源码
+      </div>
+      <div>仓库地址：https://github.com/astak16/react-source</div>
+    </div>
+  );
+}
+root.render(<FunctionComponent />);
+console.log("index.jsx", <FunctionComponent />);

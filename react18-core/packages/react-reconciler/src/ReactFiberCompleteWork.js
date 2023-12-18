@@ -54,7 +54,7 @@ export function completeWork(current, workInProgress) {
     case HostComponent:
       const { type } = workInProgress;
       // 创建真实 DOM 节点
-      const instance = createInstance(type);
+      const instance = createInstance(type, newProps, workInProgress);
       // 将子节点挂载到当前节点上
       appendAllChildren(instance, workInProgress);
       // 将真实 DOM 节点挂载到当前 fiber 的 stateNode 属性上
