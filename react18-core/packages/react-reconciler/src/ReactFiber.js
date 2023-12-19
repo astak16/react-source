@@ -1,4 +1,9 @@
-import { HostComponent, HostRoot, HostText, IndeterminateComponent } from "react-reconciler/src/ReactWorkTags";
+import {
+  HostComponent,
+  HostRoot,
+  HostText,
+  IndeterminateComponent,
+} from "react-reconciler/src/ReactWorkTags";
 import { NoFlags } from "./ReactFiberFlags";
 
 export function FiberNode(tag, pendingProps, key) {
@@ -35,6 +40,8 @@ export function FiberNode(tag, pendingProps, key) {
   this.alternate = null;
   // 第几个节点
   this.index = 0;
+  // 保存需要删除的节点
+  this.deletions = null;
 }
 
 export function createFiber(tag, pendingProps, key) {
