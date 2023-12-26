@@ -4,6 +4,7 @@ import { beginWork } from "./ReactFiberBeginWork";
 import { completeWork } from "./ReactFiberCompleteWork";
 import { MutationMask, NoFlags } from "./ReactFiberFlags";
 import { commitMutationEffectsOnFiber } from "./ReactFiberCommitWork";
+import { finishQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
 
 // completeWork 和 beginWork 执行 log 调试
 const __DEBUG__ = false;
@@ -36,6 +37,7 @@ function ensureRootIsScheduled(root) {
 }
 
 function performConcurrentWorkOnRoot(root) {
+  console.log(2222222);
   // 同步调度
   renderRootSync(root);
   // 同步调度结束后， alternate 已经完成处理了，可以将它渲染在页面上了
@@ -69,7 +71,8 @@ function commitRoot(root) {
    * --------------
    *   0b0000000010 !== 0b0000000000
    */
-  const subtreeHasEffects = (finishedWork.subtreeFlags & MutationMask) != NoFlags;
+  const subtreeHasEffects =
+    (finishedWork.subtreeFlags & MutationMask) != NoFlags;
   // 查看 RootFiber 是否有处理
   const rootHasEffect = (finishedWork.flags & MutationMask) != NoFlags;
   if (subtreeHasEffects || rootHasEffect) {
@@ -88,6 +91,7 @@ function prepareFreshStack(root) {
   // workInProgress.alternate 是构建完成的 fiber 树
   // workInProgress.alternate === root.current
   workInProgress = createWorkInProgress(root.current, null);
+  finishQueueingConcurrentUpdates();
 }
 
 function workLoopSync() {
@@ -96,7 +100,11 @@ function workLoopSync() {
     if (__DEBUG__)
       console.log(
         { workInProgress },
-        `workInProgress---${workInProgress.pendingProps ? workInProgress.pendingProps.className : null}`
+        `workInProgress---${
+          workInProgress.pendingProps
+            ? workInProgress.pendingProps.className
+            : null
+        }`
       );
     performUnitOfWork(workInProgress);
   }
@@ -117,14 +125,21 @@ function performUnitOfWork(unitOfWork) {
   if (__DEBUG__)
     console.log(
       { next },
-      `next---${next ? (next.pendingProps.className ? next.pendingProps.className : next.pendingProps) : null}`
+      `next---${
+        next
+          ? next.pendingProps.className
+            ? next.pendingProps.className
+            : null
+          : null
+      }`
     );
   // 在经过 beingWork 处理之后，pendingProps 已经处理完了，可以赋值给 memoizedProps
   unitOfWork.memoizedProps = unitOfWork.pendingProps;
   // 如果 next === null，说明没有子节点了，本次深度遍历结束
   if (next === null) {
     completeUnitOfWork(unitOfWork);
-    if (__DEBUG__) console.log({ workInProgress: unitOfWork }, "----beginWork 深度遍历----");
+    if (__DEBUG__)
+      console.log({ workInProgress: unitOfWork }, "----beginWork 深度遍历----");
   } else {
     // next 存在，说明子节点中也有子节点，继续循环调用 performUnitOfWork
     workInProgress = next;
@@ -136,7 +151,11 @@ function completeUnitOfWork(unitOfWork) {
   if (__DEBUG__)
     console.log(
       { completeUnitOfWork: completedWork },
-      `completeUnitOfWork---${completedWork.memoizedProps.className ? completedWork.memoizedProps.className : null}`
+      `completeUnitOfWork---${
+        completedWork.memoizedProps.className
+          ? completedWork.memoizedProps.className
+          : null
+      }`
     );
   do {
     const current = completedWork.alternate;
@@ -161,7 +180,11 @@ function completeUnitOfWork(unitOfWork) {
       console.log(
         { sibling },
         `siblingFiber-before---${
-          sibling ? (sibling.pendingProps.className ? sibling.pendingProps.className : sibling.pendingProps) : null
+          sibling
+            ? sibling.pendingProps.className
+              ? sibling.pendingProps.className
+              : sibling.pendingProps
+            : null
         }`
       );
     // 如果 sibling 不为 null，说明兄弟节点还没有被 beginWork 处理，需要调用 beginWork，将兄弟从虚拟 DOM 转换成 fiber
@@ -170,7 +193,11 @@ function completeUnitOfWork(unitOfWork) {
         console.log(
           { sibling },
           `siblingFiber-ing---${
-            sibling ? (sibling.pendingProps.className ? sibling.pendingProps.className : sibling.pendingProps) : null
+            sibling
+              ? sibling.pendingProps.className
+                ? sibling.pendingProps.className
+                : sibling.pendingProps
+              : null
           }`
         );
       workInProgress = sibling;
@@ -181,9 +208,15 @@ function completeUnitOfWork(unitOfWork) {
       console.log(
         { workInProgress, completedWork },
         `siblingFiber-after--执行 completeWork---workInProgress:${
-          workInProgress.pendingProps ? workInProgress.pendingProps.className : null
+          workInProgress.pendingProps
+            ? workInProgress.pendingProps.className
+            : null
         }---当前 completedWork: ${
-          completedWork ? (completedWork.pendingProps ? completedWork.pendingProps.className : null) : null
+          completedWork
+            ? completedWork.pendingProps
+              ? completedWork.pendingProps.className
+              : null
+            : null
         }`
       );
     completedWork = returnFiber;
@@ -191,9 +224,15 @@ function completeUnitOfWork(unitOfWork) {
       console.log(
         { workInProgress, completedWork },
         `siblingFiber-after--执行 completeWork---workInProgress:${
-          workInProgress.pendingProps ? workInProgress.pendingProps.className : null
+          workInProgress.pendingProps
+            ? workInProgress.pendingProps.className
+            : null
         }---下一个 completedWork: ${
-          completedWork ? (completedWork.pendingProps ? completedWork.pendingProps.className : null) : null
+          completedWork
+            ? completedWork.pendingProps
+              ? completedWork.pendingProps.className
+              : null
+            : null
         }`
       );
     // do while 循环会一直执行，直到 completedWork 为 null

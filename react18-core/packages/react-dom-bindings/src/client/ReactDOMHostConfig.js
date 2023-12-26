@@ -1,5 +1,9 @@
 import { preCacheFiberNode, updateFiberProps } from "./ReactDOMComponentTree";
-import { setInitialProperties } from "./ReactDomComponent";
+import {
+  diffProperties,
+  setInitialProperties,
+  updateProperties,
+} from "./ReactDomComponent";
 
 export function shouldSetTextContent(type, props) {
   return (
@@ -39,4 +43,24 @@ export function finalizeInitialChildren(domElement, type, props) {
 
 export function insertBefore(parentInstance, child, beforeChild) {
   parentInstance.insertBefore(child, beforeChild);
+}
+
+export function prepareUpdate(domElement, type, oldProps, newProps) {
+  return diffProperties(domElement, type, oldProps, newProps);
+}
+
+// domElement：DOM 实例
+// updatePayload：需要更新的属性
+// type：DOM 标签
+// newProps`：新的 props，在 finishedWork.memoizedProps
+// oldProps：旧的 props，在 current.memoizedProps，如果 current 不存在就用 newProps
+export function commitUpdate(
+  domElement,
+  updatePayload,
+  type,
+  oldProps,
+  newProps
+) {
+  updateProperties(domElement, updatePayload, type, oldProps, newProps);
+  updateFiberProps(domElement, newProps);
 }

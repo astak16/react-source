@@ -239,6 +239,11 @@ function createChildReconciler(shouldTrackSideEffects) {
       oldFiber = nextOldFiber;
     }
 
+    if (newIdx === newChildren.length) {
+      deleteRemainingChildren(returnFiber, oldFiber);
+      return resultingFirstChild;
+    }
+
     // 第二套方案
     if (oldFiber === null) {
       // newChildren 是一个数组，遍历 newChildren
@@ -247,7 +252,7 @@ function createChildReconciler(shouldTrackSideEffects) {
         const newFiber = createChild(returnFiber, newChildren[newIdx]);
         if (newFiber === null) continue;
         // 每个 fiber 都有一个 index 属性，表示当前 fiber 在父节点中的位置
-        placeChild(newFiber, newIdx);
+        lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
         // 将每个 child 用链表的形式连接起来
         // 如果 previousNewFiber 为 null，说明现在遍历的是第一个 child，把它赋值给 resultingFirstChild
         if (previousNewFiber === null) {
@@ -278,13 +283,18 @@ function createChildReconciler(shouldTrackSideEffects) {
             );
           }
         }
+        lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+        if (previousNewFiber === null) {
+          resultingFirstChild = newFiber;
+        } else {
+          previousNewFiber.sibling = newFiber;
+        }
+        previousNewFiber = newFiber;
       }
-      lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
-      if (previousNewFiber === null) {
-        resultingFirstChild = newFiber;
-      } else {
-        previousNewFiber.sibling = newFiber;
-      }
+    }
+
+    if (shouldTrackSideEffects) {
+      existingChildren.forEach((child) => deleteChild(returnFiber, child));
     }
 
     // 返回第一个 child
@@ -292,7 +302,7 @@ function createChildReconciler(shouldTrackSideEffects) {
   }
 
   function placeSingleChild(newFiber) {
-    if (shouldTrackSideEffects) {
+    if (shouldTrackSideEffects && newFiber.alternate === null) {
       newFiber.flags |= Placement;
     }
     return newFiber;

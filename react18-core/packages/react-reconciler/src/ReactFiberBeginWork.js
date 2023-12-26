@@ -1,4 +1,10 @@
-import { FunctionComponent, HostComponent, HostRoot, HostText, IndeterminateComponent } from "./ReactWorkTags";
+import {
+  FunctionComponent,
+  HostComponent,
+  HostRoot,
+  HostText,
+  IndeterminateComponent,
+} from "./ReactWorkTags";
 import { processUpdateQueue } from "./ReactFiberClassUpdateQueue";
 import { shouldSetTextContent } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 import { mountChildFibers, reconcileChildFibers } from "./ReactChildFiber";
@@ -8,7 +14,11 @@ function reconcileChildren(current, workInProgress, nextChildren) {
   if (current === null) {
     workInProgress.child = mountChildFibers(workInProgress, null, nextChildren);
   } else {
-    workInProgress.child = reconcileChildFibers(workInProgress, current.child, nextChildren);
+    workInProgress.child = reconcileChildFibers(
+      workInProgress,
+      current.child,
+      nextChildren
+    );
   }
 }
 
@@ -45,17 +55,42 @@ function updateHostComponent(current, workInProgress) {
 
 function mountIndeterminateComponent(current, workInProgress, Component) {
   const props = workInProgress.pendingProps;
-  const value = renderWithHooks(current, workInProgress, Component, props);
+  const nextChildren = renderWithHooks(
+    current,
+    workInProgress,
+    Component,
+    props
+  );
   workInProgress.tag = FunctionComponent;
-  reconcileChildren(current, workInProgress, value);
+  reconcileChildren(current, workInProgress, nextChildren);
+  return workInProgress.child;
+}
+
+function updateFunctionComponent(current, workInProgress, Component) {
+  const props = workInProgress.pendingProps;
+  const nextChildren = renderWithHooks(
+    current,
+    workInProgress,
+    Component,
+    props
+  );
+  reconcileChildren(current, workInProgress, nextChildren);
   return workInProgress.child;
 }
 
 export function beginWork(current, workInProgress) {
   // 根据 tag 的类型分别处理
   switch (workInProgress.tag) {
-    case IndeterminateComponent:
-      return mountIndeterminateComponent(current, workInProgress, workInProgress.type);
+    // 初次渲染时不知道是不是函数节点
+    case IndeterminateComponent: {
+      const Component = workInProgress.type;
+      return mountIndeterminateComponent(current, workInProgress, Component);
+    }
+    // 更新的时候已经知道当前是函数节点了
+    case FunctionComponent: {
+      const Component = workInProgress.type;
+      return updateFunctionComponent(current, workInProgress, Component);
+    }
     // 宿主环境容器节点，比如 document.getElementById('root')
     case HostRoot:
       return updateHostRoot(current, workInProgress);

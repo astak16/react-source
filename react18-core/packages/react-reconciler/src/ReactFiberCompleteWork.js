@@ -1,10 +1,16 @@
-import { NoFlags } from "./ReactFiberFlags";
-import { HostComponent, HostRoot, HostText } from "./ReactWorkTags";
+import { NoFlags, Update } from "./ReactFiberFlags";
+import {
+  FunctionComponent,
+  HostComponent,
+  HostRoot,
+  HostText,
+} from "./ReactWorkTags";
 import {
   appendInitialChild,
   createInstance,
   createTextInstance,
   finalizeInitialChildren,
+  prepareUpdate,
 } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 
 function appendAllChildren(parent, workInProgress) {
@@ -44,6 +50,20 @@ function appendAllChildren(parent, workInProgress) {
   }
 }
 
+function markUpdate(workInProgress) {
+  workInProgress.flags |= Update;
+}
+
+function updateHostComponent(current, workInProgress, type, newProps) {
+  const oldProps = current.memoizedProps;
+  const instance = workInProgress.stateNode;
+  const updatePayload = prepareUpdate(instance, type, oldProps, newProps);
+  workInProgress.updateQueue = updatePayload;
+  if (updatePayload) {
+    markUpdate(workInProgress);
+  }
+}
+
 export function completeWork(current, workInProgress) {
   const newProps = workInProgress.pendingProps;
   switch (workInProgress.tag) {
@@ -53,14 +73,26 @@ export function completeWork(current, workInProgress) {
       break;
     case HostComponent:
       const { type } = workInProgress;
-      // 创建真实 DOM 节点
-      const instance = createInstance(type, newProps, workInProgress);
-      // 将子节点挂载到当前节点上
-      appendAllChildren(instance, workInProgress);
-      // 将真实 DOM 节点挂载到当前 fiber 的 stateNode 属性上
-      workInProgress.stateNode = instance;
-      // 将属性挂载到真实 DOM 节点上
-      finalizeInitialChildren(instance, type, newProps);
+      // 最终的落脚点都在真实节点上
+      // 通过判断 current 是否存在，并且真实节点是否已经创建好了
+      if (current !== null && workInProgress.stateNode !== null) {
+        // 更新
+        updateHostComponent(current, workInProgress, type, newProps);
+      } else {
+        // 初次渲染
+        // 创建真实 DOM 节点
+        const instance = createInstance(type, newProps, workInProgress);
+        // 将子节点挂载到当前节点上
+        appendAllChildren(instance, workInProgress);
+        // 将真实 DOM 节点挂载到当前 fiber 的 stateNode 属性上
+        workInProgress.stateNode = instance;
+        // 将属性挂载到真实 DOM 节点上
+        finalizeInitialChildren(instance, type, newProps);
+      }
+      bubbleProperties(workInProgress);
+      break;
+    case FunctionComponent:
+      // 收集函数组件的 flags 和 subtreeFlags
       bubbleProperties(workInProgress);
       break;
     case HostText:
