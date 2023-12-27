@@ -13,3 +13,8 @@ export function useReducer(reducer, initialArg) {
   // 那肯定是在后面某个地方给 ReactCurrentDispatcher.current 赋值了
   return dispatcher.useReducer(reducer, initialArg);
 }
+
+export function useState(initialState) {
+  const dispatcher = resolveDispatcher();
+  return dispatcher.useState(initialState);
+}

@@ -20,14 +20,16 @@ let workInProgressHook = null; // 当前正在处理的 workInProgress 的 hook
 // 只在更新时使用
 let currentHook = null;
 
-// 函数组件挂载时执行的 useReducer
+// 函数组件挂载时执行的 hooks
 const HooksDispatcherOnMount = {
   useReducer: mountReducer,
+  useState: mountState,
 };
 
-// 函数组件更新时执行的 useReducer
+// 函数组件更新时执行的 hooks
 const HooksDispatcherOnUpdate = {
   useReducer: updateReducer,
+  useState: updateState,
 };
 
 // 初次渲染时执行，如果有多个 useReducer，这个函数会多次运行
@@ -57,6 +59,23 @@ function mountReducer(reducer, initialArg) {
   return [hook.memoizedState, queue.dispatch];
 }
 
+function mountWorkInProgressHook() {
+  const hook = { memoizedState: null, queue: null, next: null };
+  // currentlyRenderingFiber.memoizedState 是第一个 useReducer
+  // currentlyRenderingFiber.memoizedState.next 是第二个 useReducer
+  // currentlyRenderingFiber.memoizedState.memoizedState 保存的是 initialArg1
+  // currentlyRenderingFiber.memoizedState.queue 用在保存 action
+  if (workInProgressHook === null) {
+    // workInProgress === null 表示是当前处理的是函数组件中的第一个 hook
+    // mountWorkInProgressHook 第一次运行会走这里
+    currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
+  } else {
+    // mountWorkInProgressHook 从第二次运行开始会走这里
+    workInProgressHook = workInProgressHook.next = hook;
+  }
+  return workInProgressHook;
+}
+
 /**
  * const [age, setAge] = useReducer(getAge, 1);
  * const [age1, setAge1] = useReducer(getAge, 11);
@@ -81,22 +100,6 @@ function dispatchReducerAction(fiber, queue, action) {
   // scheduleUpdateOnFiber 会调用 finishQueueingConcurrentUpdates
   // finishQueueingConcurrentUpdates 是由 requestIdleCallback 触发，所以下面是异步的
   scheduleUpdateOnFiber(root);
-}
-function mountWorkInProgressHook() {
-  const hook = { memoizedState: null, queue: null, next: null };
-  // currentlyRenderingFiber.memoizedState 是第一个 useReducer
-  // currentlyRenderingFiber.memoizedState.next 是第二个 useReducer
-  // currentlyRenderingFiber.memoizedState.memoizedState 保存的是 initialArg1
-  // currentlyRenderingFiber.memoizedState.queue 用在保存 action
-  if (workInProgressHook === null) {
-    // workInProgress === null 表示是当前处理的是函数组件中的第一个 hook
-    // mountWorkInProgressHook 第一次运行会走这里
-    currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
-  } else {
-    // mountWorkInProgressHook 从第二次运行开始会走这里
-    workInProgressHook = workInProgressHook.next = hook;
-  }
-  return workInProgressHook;
 }
 
 // 更新时执行，如果有多个 useReducer，这个函数会多次运行
@@ -153,6 +156,48 @@ function updateWorkInProgressHook() {
     workInProgressHook = workInProgressHook.next = newHook;
   }
   return workInProgressHook;
+}
+
+function baseStateReducer(state, action) {
+  return typeof action === "function" ? action(state) : action;
+}
+
+function mountState(initialState) {
+  const hook = mountWorkInProgressHook();
+  hook.memoizedState = initialState;
+  const queue = {
+    pending: null,
+    dispatch: null,
+    lastRenderedReducer: baseStateReducer,
+    lastRenderedState: initialState,
+  };
+  hook.queue = queue;
+  queue.dispatch = dispatchSetStateAction.bind(
+    null,
+    currentlyRenderingFiber,
+    queue
+  );
+  return [hook.memoizedState, queue.dispatch];
+}
+
+function updateState() {
+  return updateReducer(baseStateReducer);
+}
+
+function dispatchSetStateAction(fiber, queue, action) {
+  const update = {
+    action,
+    hasEagerState: false,
+    eagerState: null,
+    next: null,
+  };
+  const { lastRenderedReducer, lastRenderedState } = queue;
+  const eagerState = lastRenderedReducer(lastRenderedState, action);
+  update.eagerState = eagerState;
+  update.hasEagerState = true;
+  if (Object.is(eagerState, lastRenderedState)) return;
+  const root = enqueueConcurrentHookUpdate(fiber, queue, update);
+  scheduleUpdateOnFiber(root);
 }
 
 // 这个函数是 beginWork 时调用

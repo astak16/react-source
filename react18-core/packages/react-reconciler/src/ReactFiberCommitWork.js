@@ -114,7 +114,6 @@ function commitPlacement(finishedWork) {
 export function commitMutationEffectsOnFiber(finishedWork, root) {
   const flags = finishedWork.flags;
   const current = finishedWork.alternate;
-  console.log(current, finishedWork, "commitMutationEffectsOnFiber");
   switch (finishedWork.tag) {
     case FunctionComponent:
     case HostRoot:
@@ -129,7 +128,6 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
     case HostComponent: {
       recursivelyTraverseMutationEffects(root, finishedWork);
       commitReconciliationEffects(finishedWork);
-      console.log(flags, Update, flags & Update, "update");
       if (flags & Update) {
         const instance = finishedWork.stateNode;
         if (instance !== null) {

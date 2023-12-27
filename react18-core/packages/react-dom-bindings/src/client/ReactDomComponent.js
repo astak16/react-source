@@ -150,14 +150,12 @@ export function updateProperties(domElement, updatePayload) {
 }
 
 function updateDomProperties(domElement, updatePayload) {
-  console.log(updatePayload, "propperties updatePayload");
   for (let i = 0; i < updatePayload.length; i += 2) {
     const propKey = updatePayload[i];
     const propValue = updatePayload[i + 1];
     if (propKey === "style") {
       setValueForStyles(domElement, propValue);
     } else if (propKey === "children") {
-      console.log(propKey, propValue, "propKey, propValue");
       setTextContent(domElement, propValue);
     } else {
       setValueForProperty(domElement, propKey, propValue);

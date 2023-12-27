@@ -37,7 +37,6 @@ function ensureRootIsScheduled(root) {
 }
 
 function performConcurrentWorkOnRoot(root) {
-  console.log(2222222);
   // 同步调度
   renderRootSync(root);
   // 同步调度结束后， alternate 已经完成处理了，可以将它渲染在页面上了
@@ -72,9 +71,9 @@ function commitRoot(root) {
    *   0b0000000010 !== 0b0000000000
    */
   const subtreeHasEffects =
-    (finishedWork.subtreeFlags & MutationMask) != NoFlags;
+    (finishedWork.subtreeFlags & MutationMask) !== NoFlags;
   // 查看 RootFiber 是否有处理
-  const rootHasEffect = (finishedWork.flags & MutationMask) != NoFlags;
+  const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
   if (subtreeHasEffects || rootHasEffect) {
     // 有处理就进入 commitMutationEffectsOnFiber 函数
     commitMutationEffectsOnFiber(finishedWork, root);
