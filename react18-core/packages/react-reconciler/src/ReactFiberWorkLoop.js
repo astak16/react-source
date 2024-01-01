@@ -2,8 +2,12 @@ import { scheduleCallback } from "scheduler";
 import { createWorkInProgress } from "./ReactFiber";
 import { beginWork } from "./ReactFiberBeginWork";
 import { completeWork } from "./ReactFiberCompleteWork";
-import { MutationMask, NoFlags } from "./ReactFiberFlags";
-import { commitMutationEffectsOnFiber } from "./ReactFiberCommitWork";
+import { MutationMask, NoFlags, Passive } from "./ReactFiberFlags";
+import {
+  commitMutationEffectsOnFiber,
+  commitPassiveMountEffects,
+  commitPassiveUnmountEffects,
+} from "./ReactFiberCommitWork";
 import { finishQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
 
 // completeWork 和 beginWork 执行 log 调试
@@ -25,6 +29,8 @@ const __DEBUG__ = false;
  * workInProgress.alternate === current
  */
 let workInProgress = null;
+let rootDoseHavePassiveEffect = false;
+let rootWithPendingPassiveEffects = null;
 
 // root 是 FiberRoot
 export function scheduleUpdateOnFiber(root) {
@@ -41,7 +47,8 @@ function performConcurrentWorkOnRoot(root) {
   renderRootSync(root);
   // 同步调度结束后， alternate 已经完成处理了，可以将它渲染在页面上了
   // 所以就将 alternate 赋值给 finishedWork
-  root.finishedWork = root.current.alternate;
+  const finishedWork = root.current.alternate;
+  root.finishedWork = finishedWork;
   // 进入 commitWork 阶段
   // 进入 commitWork 阶段，然后将 root 传给 commitRoot，由 commitRoot 渲染在页面上
   commitRoot(root); // commitWork 阶段
@@ -59,6 +66,17 @@ function commitRoot(root) {
   // 取出已经过 beginWork 和 completeWork 处理过的 Fiber 树
   // 这个 finishedWork 是 RootFiber
   const { finishedWork } = root;
+
+  if (
+    (finishedWork.subtreeFlags & Passive) !== NoFlags ||
+    (finishedWork.flags & Passive) !== NoFlags
+  ) {
+    if (!rootDoseHavePassiveEffect) {
+      rootDoseHavePassiveEffect = true;
+      scheduleCallback(flushPassiveEffects);
+    }
+  }
+
   // 查看 RootFiber 的子 Fiber 是否有处理
   /**
    * Placement:    0b0000000010;
@@ -77,6 +95,10 @@ function commitRoot(root) {
   if (subtreeHasEffects || rootHasEffect) {
     // 有处理就进入 commitMutationEffectsOnFiber 函数
     commitMutationEffectsOnFiber(finishedWork, root);
+    if (rootDoseHavePassiveEffect) {
+      rootDoseHavePassiveEffect = false;
+      rootWithPendingPassiveEffects = root;
+    }
   }
   // 经过 commitWork 处理后，将替换页面中的 RootFiber
   root.current = finishedWork;
@@ -240,4 +262,12 @@ function completeUnitOfWork(unitOfWork) {
     workInProgress = completedWork;
   } while (completedWork !== null);
   if (__DEBUG__) console.log("---------completeUnitOfWork 执行完了-----------");
+}
+
+function flushPassiveEffects() {
+  if (rootWithPendingPassiveEffects !== null) {
+    const root = rootWithPendingPassiveEffects;
+    commitPassiveUnmountEffects(root.current);
+    commitPassiveMountEffects(root, root.current);
+  }
 }

@@ -1,5 +1,8 @@
 import { HostComponent } from "react-reconciler/src/ReactWorkTags";
-import { addEventBubbleListener, addEventCaptureListener } from "./EventListener";
+import {
+  addEventBubbleListener,
+  addEventCaptureListener,
+} from "./EventListener";
 import { allNativeEvents } from "./EventRegistry";
 import { IS_CAPTURE_PHASE } from "./EventSystemFlags";
 import { createEventListenerWrapperWithPriority } from "./ReactDOMEventListener";
@@ -29,23 +32,41 @@ export function listenAllSupportedEvents(rootContainerElement) {
 // domEventName：原生事件名，比如 click
 // isCapturePhaseListener：是否是捕获阶段，true 表示捕获阶段，false 表示冒泡阶段
 // target：事件绑定的目标节点，也就是 div#root
-export function listenToNativeEvent(domEventName, isCapturePhaseListener, target) {
+export function listenToNativeEvent(
+  domEventName,
+  isCapturePhaseListener,
+  target
+) {
   // 默认是冒泡
   let eventSystemFlags = 0;
   // 捕获
   if (isCapturePhaseListener) {
     eventSystemFlags |= IS_CAPTURE_PHASE;
   }
-  addTrappedEventListener(target, domEventName, eventSystemFlags, isCapturePhaseListener);
+  addTrappedEventListener(
+    target,
+    domEventName,
+    eventSystemFlags,
+    isCapturePhaseListener
+  );
 }
 
 // targetContainer：事件挂载节点，也就是 div#root
 // domEventName：原生事件名，比如 click
 // eventSystemFlags：4 表示捕获，0 表示冒泡
 // isCapturePaseListener：true 表示捕获阶段，false 表示冒泡阶段
-function addTrappedEventListener(targetContainer, domEventName, eventSystemFlags, isCapturePhaseListener) {
+function addTrappedEventListener(
+  targetContainer,
+  domEventName,
+  eventSystemFlags,
+  isCapturePhaseListener
+) {
   // 创建事件监听函数
-  const listener = createEventListenerWrapperWithPriority(targetContainer, domEventName, eventSystemFlags);
+  const listener = createEventListenerWrapperWithPriority(
+    targetContainer,
+    domEventName,
+    eventSystemFlags
+  );
   // 捕获阶段
   if (isCapturePhaseListener) {
     addEventCaptureListener(targetContainer, domEventName, listener);
@@ -67,7 +88,13 @@ export function dispatchEventForPluginEventSystem(
   targetInst,
   targetContainer
 ) {
-  dispatchEventForPlugin(domEventName, eventSystemFlags, nativeEvent, targetInst, targetContainer);
+  dispatchEventForPlugin(
+    domEventName,
+    eventSystemFlags,
+    nativeEvent,
+    targetInst,
+    targetContainer
+  );
 }
 
 // domEventName: 原生事件名，比如 click
@@ -75,7 +102,13 @@ export function dispatchEventForPluginEventSystem(
 // nativeEvent: 原生事件对象
 // targetInst: 原生事件源所对应的 fiber
 // targetContainer: 拿到原生事件源所对应的 fiber
-function dispatchEventForPlugin(domEventName, eventSystemFlags, nativeEvent, targetInst, targetContainer) {
+function dispatchEventForPlugin(
+  domEventName,
+  eventSystemFlags,
+  nativeEvent,
+  targetInst,
+  targetContainer
+) {
   const nativeEventTarget = getEventTarget(nativeEvent);
   const dispatchQueue = [];
   extractEvents(
@@ -122,7 +155,12 @@ function extractEvents(
 // reactName: react 事件名
 // nativeEventType: 原生事件类型，比如 click
 // isCapturePhase: true 是捕获，false 是冒泡
-export function accumulateSinglePhaseListener(targetFiber, reactName, nativeEventType, isCapturePhase) {
+export function accumulateSinglePhaseListener(
+  targetFiber,
+  reactName,
+  nativeEventType,
+  isCapturePhase
+) {
   // 捕获的事件名，react 事件名
   const captureName = reactName + "Capture";
   // 根据是否是捕获确定当前的事件名
@@ -171,7 +209,7 @@ function createDispatchListener(instance, listener, currentTarget) {
 // eventSystemFlags：4 表示捕获，0 表示冒泡
 function processDispatchQueue(dispatchQueue, eventSystemFlags) {
   // 是否是捕获阶段
-  const isCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) != 0;
+  const isCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) !== 0;
   for (let i = 0; i < dispatchQueue.length; i++) {
     // event：合成事件对象
     // dispatchListeners：事件函数队列，[事件源对应的事件函数, 事件源父节点对应的事件函数, ..., div#root 对应的事件函数]
@@ -183,7 +221,11 @@ function processDispatchQueue(dispatchQueue, eventSystemFlags) {
 // event：合成事件对象
 // dispatchListeners：事件函数队列，[事件源对应的事件函数, 事件源父节点对应的事件函数, ..., div#root 对应的事件函数]
 // isCapturePhase：true 表示捕获，false 表示冒泡
-function processDispatchQueueItemsInOrder(event, dispatchListeners, isCapturePhase) {
+function processDispatchQueueItemsInOrder(
+  event,
+  dispatchListeners,
+  isCapturePhase
+) {
   // 捕获阶段
   if (isCapturePhase) {
     // 捕获阶段是从后往前执行

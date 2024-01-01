@@ -117,7 +117,6 @@ function createChildReconciler(shouldTrackSideEffects) {
     const current = newFiber.alternate;
     if (current !== null) {
       const oldIndex = current.index;
-      newFiber.flags |= Placement;
       if (oldIndex < lastPlacedIndex) {
         newFiber.flags |= Placement;
         return lastPlacedIndex;

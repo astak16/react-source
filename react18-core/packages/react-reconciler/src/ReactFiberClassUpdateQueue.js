@@ -1,6 +1,8 @@
 import assign from "shared/assign";
 import { markUpdateLaneFromFiberToRoot } from "./ReactFiberConcurrentUpdates";
 
+export const UpdateState = 0;
+
 export function initializeUpdateQueue(fiber) {
   const queue = {
     shared: {
@@ -13,7 +15,7 @@ export function initializeUpdateQueue(fiber) {
 }
 
 export function createUpdate() {
-  const update = {};
+  const update = { tag: UpdateState };
   return update;
 }
 
@@ -78,6 +80,10 @@ export function processUpdateQueue(workInProgress) {
   }
 }
 function getStateFromUpdate(update, prevState) {
-  const { payload } = update;
-  return assign({}, prevState, payload);
+  switch (update.tag) {
+    case UpdateState:
+      const { payload } = update;
+      // 合并prevState和payload为新状态
+      return assign({}, prevState, payload);
+  }
 }

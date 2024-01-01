@@ -1,4 +1,7 @@
-import { registerSimpleEvents, topLevelEventsToReactNames } from "../DOMEventProperties";
+import {
+  registerSimpleEvents,
+  topLevelEventsToReactNames,
+} from "../DOMEventProperties";
 import { accumulateSinglePhaseListener } from "../DOMPluginEventSystem";
 import { IS_CAPTURE_PHASE } from "../EventSystemFlags";
 import { SyntheticMouseEvent } from "../SyntheticEvent";
@@ -28,10 +31,21 @@ function extractEvents(
     default:
       break;
   }
-  const isCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) != 0;
-  const listeners = accumulateSinglePhaseListener(targetInst, reactName, nativeEvent.type, isCapturePhase);
+  const isCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) !== 0;
+  const listeners = accumulateSinglePhaseListener(
+    targetInst,
+    reactName,
+    nativeEvent.type,
+    isCapturePhase
+  );
   if (listeners.length > 0) {
-    const event = new SyntheticEventCtor(reactName, domEventName, null, nativeEvent, nativeEventTarget);
+    const event = new SyntheticEventCtor(
+      reactName,
+      domEventName,
+      null,
+      nativeEvent,
+      nativeEventTarget
+    );
     dispatchQueue.push({ event, listeners });
   }
 }

@@ -4,9 +4,13 @@
 // 冒泡
 export function addEventBubbleListener(target, eventType, listener) {
   target.addEventListener(eventType, listener, false);
+  // 返回添加的监听器函数
+  return listener;
 }
 
 // 捕获
 export function addEventCaptureListener(target, eventType, listener) {
   target.addEventListener(eventType, listener, true);
+  // 返回添加的监听器函数
+  return listener;
 }

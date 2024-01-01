@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { useReducer, useState } from "react";
+import { useReducer, useState, useEffect } from "react";
 
 let MyComponent1 = () => {
   return <div>MyComponent-1</div>;
@@ -31,7 +31,7 @@ function getAge(state, action) {
 
 function ElementComponent() {
   // const [number, setAge] = useReducer(getAge, 1); // ===> useReducer1
-  // const [number1, setAge2] = useReducer(getAge, 11); // ===> useReducer2
+  const [number1, setAge2] = useReducer(getAge, 11); // ===> useReducer2
   const [number, setNumber] = useState(1);
   const onClick = () => {
     setNumber((number) => number + 1);
@@ -42,6 +42,14 @@ function ElementComponent() {
     // setAge({ type: "add", value: 3 });
     // setAge2({ type: "minus", value: 12 });
   };
+
+  useEffect(() => {
+    console.log("create effect");
+    return () => {
+      console.log("destroy effect");
+    };
+  });
+
   const obj1 = { zhangsan: "男", style: { color: "red" } };
   const obj2 = { xiaohong: "女" };
   console.log(number);
