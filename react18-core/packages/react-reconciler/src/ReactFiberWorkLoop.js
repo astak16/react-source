@@ -12,6 +12,8 @@ import { finishQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
 
 // completeWork 和 beginWork 执行 log 调试
 const __DEBUG__ = false;
+let completeWorkNumber = 1;
+let beginWorkNumber = 1;
 
 // FiberRoot 是页面根节点(真实节点)
 // RootFiber 是 fiber 根节点
@@ -44,9 +46,11 @@ function ensureRootIsScheduled(root) {
 
 function performConcurrentWorkOnRoot(root) {
   // 同步调度
+  // beginWork 和 completeWork 在此函数中执行
   renderRootSync(root);
-  // 同步调度结束后， alternate 已经完成处理了，可以将它渲染在页面上了
-  // 所以就将 alternate 赋值给 finishedWork
+  // 执行到这里时，beginWork 和 completeWork 都已经执行完了
+  // alternate 是一颗已经完成处理的 Fiber 树
+  // 需要将 alternate 赋值给 finishedWork，这样在 commitWork 阶段就可以拿到已经完成处理的 Fiber 树了
   const finishedWork = root.current.alternate;
   root.finishedWork = finishedWork;
   // 进入 commitWork 阶段
@@ -124,6 +128,8 @@ function workLoopSync() {
         `workInProgress---${
           workInProgress.pendingProps
             ? workInProgress.pendingProps.className
+              ? workInProgress.pendingProps.className
+              : workInProgress.pendingProps
             : null
         }`
       );
@@ -142,6 +148,17 @@ function performUnitOfWork(unitOfWork) {
    *  unitOfWork：RootFiber.alternate
    */
   // next 是 beginWork 返回的第一个子 fiber，深度遍历，next = unitOfWork.child
+  if (__DEBUG__)
+    console.log(
+      { beginWork: unitOfWork },
+      `beginWork---${
+        unitOfWork.pendingProps
+          ? unitOfWork.pendingProps.className
+            ? unitOfWork.pendingProps.className
+            : unitOfWork.pendingProps
+          : null
+      }---第${beginWorkNumber++}个`
+    );
   let next = beginWork(current, unitOfWork); // beginWork 阶段
   if (__DEBUG__)
     console.log(
@@ -191,7 +208,7 @@ function completeUnitOfWork(unitOfWork) {
               ? workInProgress.pendingProps.className
               : workInProgress.pendingProps
             : null
-        }`
+        }---第${completeWorkNumber++}个`
       );
     // 执行 completeWork
     completeWork(current, completedWork); // completeWork 阶段

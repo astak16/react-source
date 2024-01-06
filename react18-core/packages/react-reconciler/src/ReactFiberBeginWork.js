@@ -11,6 +11,7 @@ import { mountChildFibers, reconcileChildFibers } from "./ReactChildFiber";
 import { renderWithHooks } from "./ReactFiberHooks";
 
 function reconcileChildren(current, workInProgress, nextChildren) {
+  // 初始渲染时，只有 div#root 这个节点 current 不为 null，其他节点都为 null
   if (current === null) {
     workInProgress.child = mountChildFibers(workInProgress, null, nextChildren);
   } else {

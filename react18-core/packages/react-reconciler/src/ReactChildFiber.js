@@ -8,6 +8,7 @@ import { Placement, ChildDeletion } from "./ReactFiberFlags";
 import isArray from "shared/isArray";
 import { HostText } from "./ReactWorkTags";
 
+// 初始渲染时，只有 div#root 这个节点的 shouldTrackSideEffects 为 true，其他节点都为 false
 function createChildReconciler(shouldTrackSideEffects) {
   // fiber 是老 Fiber
   // pendingProps 是新的 props
@@ -108,27 +109,6 @@ function createChildReconciler(shouldTrackSideEffects) {
     return null;
   }
 
-  // 每个 fiber 都有一个 index 属性，表示当前 fiber 在父节点中的位置
-  function placeChild(newFiber, lastPlacedIndex, newIdx) {
-    newFiber.index = newIdx;
-    if (!shouldTrackSideEffects) {
-      return lastPlacedIndex;
-    }
-    const current = newFiber.alternate;
-    if (current !== null) {
-      const oldIndex = current.index;
-      if (oldIndex < lastPlacedIndex) {
-        newFiber.flags |= Placement;
-        return lastPlacedIndex;
-      } else {
-        return oldIndex;
-      }
-    } else {
-      newFiber.flags |= Placement;
-      return lastPlacedIndex;
-    }
-  }
-
   function updateElement(returnFiber, current, element) {
     const elementType = element.type;
     if (current !== null) {
@@ -216,6 +196,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     let oldFiber = currentFirstChild;
     let nextOldFiber = null;
     let lastPlacedIndex = 0;
+
     // 第一套方案
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
       nextOldFiber = oldFiber.sibling;
@@ -301,10 +282,33 @@ function createChildReconciler(shouldTrackSideEffects) {
   }
 
   function placeSingleChild(newFiber) {
+    // beginWork 阶段，只有在处理 div#root 节点时，shouldTrackSideEffects 为 true
+    // 这里的 newFiber 是 div#root 的第一个子节点，也就是 element 或者 Component
     if (shouldTrackSideEffects && newFiber.alternate === null) {
       newFiber.flags |= Placement;
     }
     return newFiber;
+  }
+
+  // 每个 fiber 都有一个 index 属性，表示当前 fiber 在父节点中的位置
+  function placeChild(newFiber, lastPlacedIndex, newIdx) {
+    newFiber.index = newIdx;
+    if (!shouldTrackSideEffects) {
+      return lastPlacedIndex;
+    }
+    const current = newFiber.alternate;
+    if (current !== null) {
+      const oldIndex = current.index;
+      if (oldIndex < lastPlacedIndex) {
+        newFiber.flags |= Placement;
+        return lastPlacedIndex;
+      } else {
+        return oldIndex;
+      }
+    } else {
+      newFiber.flags |= Placement;
+      return lastPlacedIndex;
+    }
   }
 
   // returnFiber 是父节点，也就是 workInProgress
@@ -313,6 +317,7 @@ function createChildReconciler(shouldTrackSideEffects) {
   function reconcileChildFibers(returnFiber, currentFirstFiber, newChild) {
     // 处理单个节点
     if (typeof newChild === "object" && newChild !== null) {
+      // 函数组件和原生节点都是这个类型
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE: {
           return placeSingleChild(
@@ -332,5 +337,6 @@ function createChildReconciler(shouldTrackSideEffects) {
   return reconcileChildFibers;
 }
 
+// 初始渲染时，div#root 这个节点 shouldTrackSideEffects 为 true，其他节点都为 false
 export const mountChildFibers = createChildReconciler(false);
 export const reconcileChildFibers = createChildReconciler(true);

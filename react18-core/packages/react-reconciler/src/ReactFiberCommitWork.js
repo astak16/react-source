@@ -131,6 +131,7 @@ function recursivelyTraverseMutationEffects(root, parentFiber) {
     let { child } = parentFiber;
     // 如果有子 Fiber 就循环调用 commitMutationEffectsOnFiber
     while (child !== null) {
+      // 递归处理 Fiber
       commitMutationEffectsOnFiber(child, root);
       child = child.sibling;
     }
@@ -142,6 +143,7 @@ function commitReconciliationEffects(finishedWork) {
   // 检查自身有没有变化，如果有变化就调用 commitPlacement
   if (flags & Placement) {
     commitPlacement(finishedWork);
+    // 处理完后就将 Placement 从 flags 中删除
     finishedWork.flags &= ~Placement;
   }
 }
@@ -150,6 +152,7 @@ function isHostParent(fiber) {
   return fiber.tag === HostComponent || fiber.tag === HostRoot;
 }
 
+// 从当前 Fiber 向上找到最近有真实 DOM 节点的 Fiber
 function getHostParentFiber(fiber) {
   let parent = fiber.return;
   while (parent !== null) {
@@ -183,10 +186,10 @@ function getHostSibling(fiber) {
   }
 }
 
-function insertOrAppendPlacementNode(node, before, parent) {
-  const isHost = isHostParent(node);
+function insertOrAppendPlacementNode(fiber, before, parent) {
+  const isHost = isHostParent(fiber);
   if (isHost) {
-    const { stateNode } = node;
+    const { stateNode } = fiber;
     if (before) {
       insertBefore(parent, stateNode, before);
     } else {
@@ -195,7 +198,7 @@ function insertOrAppendPlacementNode(node, before, parent) {
       appendInitialChild(parent, stateNode);
     }
   } else {
-    const { child } = node;
+    const { child } = fiber;
     if (child !== null) {
       insertOrAppendPlacementNode(child, before, parent);
       let { sibling } = child;
@@ -207,9 +210,12 @@ function insertOrAppendPlacementNode(node, before, parent) {
   }
 }
 
+// 在初始渲染阶段，finishedWork 是 RootFiber.child，也就是 element 或者 Component 对应的 Fiber
+// parentFiber 是 RootFiber
 function commitPlacement(finishedWork) {
   const parentFiber = getHostParentFiber(finishedWork);
   switch (parentFiber.tag) {
+    // 初始渲染走这里
     case HostRoot: {
       const parent = parentFiber.stateNode.containerInfo;
       const before = getHostSibling(finishedWork);
@@ -232,15 +238,16 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
     case FunctionComponent:
     case HostRoot:
     case HostText: {
-      // 这个函数内部也调用了 commitReconciliationEffects 为什么这里还要调用 commitReconciliationEffects
+      // 递归处理 Fiber 树
       recursivelyTraverseMutationEffects(root, finishedWork);
-      // 这行代码执行要等到 recursivelyTraverseMutationEffects 执行完成
-      // recursivelyTraverseMutationEffects 是递归处理 finishedWork.child，但不处理自身的变化，这行代码是处理自身的变化
+      // 处理自身节点的副作用
       commitReconciliationEffects(finishedWork);
       break;
     }
     case HostComponent: {
+      // 递归处理 Fiber 树
       recursivelyTraverseMutationEffects(root, finishedWork);
+      // 处理自身节点的副作用
       commitReconciliationEffects(finishedWork);
       if (flags & Update) {
         const instance = finishedWork.stateNode;

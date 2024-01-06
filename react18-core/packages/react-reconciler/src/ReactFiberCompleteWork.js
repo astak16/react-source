@@ -89,11 +89,11 @@ export function completeWork(current, workInProgress) {
         // 将属性挂载到真实 DOM 节点上
         finalizeInitialChildren(instance, type, newProps);
       }
-      bubbleProperties(workInProgress);
+      // bubbleProperties(workInProgress);
       break;
     case FunctionComponent:
       // 收集函数组件的 flags 和 subtreeFlags
-      bubbleProperties(workInProgress);
+      // bubbleProperties(workInProgress);
       break;
     case HostText:
       /*
@@ -106,7 +106,7 @@ export function completeWork(current, workInProgress) {
       const nextText = newProps;
       workInProgress.stateNode = createTextInstance(nextText);
       // 收集当前节点下子节点的 flags 和 subtreeFlags
-      bubbleProperties(workInProgress);
+      // bubbleProperties(workInProgress);
       break;
     default:
       break;
