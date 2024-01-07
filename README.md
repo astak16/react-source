@@ -20,3 +20,4 @@
   2. [beginWork 工作原理](./docs/beginWork工作原理.md)
   3. [4 张图带你看懂 beginWork 和 completeWork 工作过程](./docs/4张图带你看懂beginWork和completeWork工作过程.md)
   4. [一张图看懂 React 合成事件原理](./docs/一张图看懂React合成事件原理.md)
+  5. [commitWork 工作原理](./docs/commitWork工作原理.md)
