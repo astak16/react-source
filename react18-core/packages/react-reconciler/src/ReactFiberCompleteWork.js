@@ -10,6 +10,7 @@ import {
   createInstance,
   createTextInstance,
   finalizeInitialChildren,
+  getRootHostContainer,
   prepareUpdate,
 } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 
@@ -54,6 +55,22 @@ function markUpdate(workInProgress) {
   workInProgress.flags |= Update;
 }
 
+function updateHostText(current, workInProgress, oldText, newText) {
+  if (oldText !== newText) {
+    // const rootContainerInstance = getRootHostContainer();
+    // workInProgress.stateNode = createTextInstance(
+    //   newText,
+    //   rootContainerInstance,
+    //   workInProgress
+    // );
+    markUpdate(workInProgress);
+  } else {
+    workInProgress.stateNode = current.stateNode;
+  }
+}
+
+// newProps 就是 workInProgress.pendingProps
+// 将 workInProgress.pendingProps 和 current.memoizedProps 比较，找出两个 props 之间的区别，保存到 workInProgress.updateQueue 中
 function updateHostComponent(current, workInProgress, type, newProps) {
   const oldProps = current.memoizedProps;
   const instance = workInProgress.stateNode;
@@ -68,6 +85,7 @@ export function completeWork(current, workInProgress) {
   const newProps = workInProgress.pendingProps;
   switch (workInProgress.tag) {
     case HostRoot:
+      // updateHostContainer(current, workInProgress);
       // 收集当前节点下子节点的 flags 和 subtreeFlags
       bubbleProperties(workInProgress);
       break;
@@ -89,11 +107,11 @@ export function completeWork(current, workInProgress) {
         // 将属性挂载到真实 DOM 节点上
         finalizeInitialChildren(instance, type, newProps);
       }
-      // bubbleProperties(workInProgress);
+      bubbleProperties(workInProgress);
       break;
     case FunctionComponent:
       // 收集函数组件的 flags 和 subtreeFlags
-      // bubbleProperties(workInProgress);
+      bubbleProperties(workInProgress);
       break;
     case HostText:
       /*
@@ -104,9 +122,19 @@ export function completeWork(current, workInProgress) {
        */
       // 这里是处理 text-1 的文本
       const nextText = newProps;
-      workInProgress.stateNode = createTextInstance(nextText);
+      if (current !== null && workInProgress.stateNode !== null) {
+        const oldText = current.memoizedProps;
+        updateHostText(current, workInProgress, oldText, nextText);
+      } else {
+        const rootContainerInstance = getRootHostContainer();
+        workInProgress.stateNode = createTextInstance(
+          nextText,
+          rootContainerInstance,
+          workInProgress
+        );
+      }
       // 收集当前节点下子节点的 flags 和 subtreeFlags
-      // bubbleProperties(workInProgress);
+      bubbleProperties(workInProgress);
       break;
     default:
       break;

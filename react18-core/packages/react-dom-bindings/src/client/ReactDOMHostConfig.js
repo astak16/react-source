@@ -4,6 +4,16 @@ import {
   setInitialProperties,
   updateProperties,
 } from "./ReactDomComponent";
+import { setTextContent } from "./setTextContent";
+
+function createCursor(defaultValue) {
+  return { current: defaultValue };
+}
+const rootInstanceStackCursor = createCursor(document);
+
+export function getRootHostContainer() {
+  return rootInstanceStackCursor.current;
+}
 
 export function shouldSetTextContent(type, props) {
   return (
@@ -19,8 +29,14 @@ export function shouldSetTextContent(type, props) {
  * </div>
  */
 // 这个函数是对 text-1 创建文本节点
-export function createTextInstance(content) {
-  return document.createTextNode(content);
+export function createTextInstance(
+  content,
+  rootContainerInstance,
+  internalInstanceHandle
+) {
+  const textNode = rootContainerInstance.createTextNode(content);
+  preCacheFiberNode(internalInstanceHandle, textNode);
+  return textNode;
 }
 
 export function createInstance(type, props, internalInstanceHandle) {
@@ -49,6 +65,20 @@ export function prepareUpdate(domElement, type, oldProps, newProps) {
   return diffProperties(domElement, type, oldProps, newProps);
 }
 
+export function removeChild(parent, child) {
+  if (parent.contains(child)) {
+    parent.removeChild(child);
+  }
+}
+
+export function removeChildFromContainer(container, child) {
+  if (container.nodeType === 8) {
+    container.parentNode.removeChild(child);
+  } else {
+    container.removeChild(child);
+  }
+}
+
 // domElement：DOM 实例
 // updatePayload：需要更新的属性
 // type：DOM 标签
@@ -63,4 +93,12 @@ export function commitUpdate(
 ) {
   updateProperties(domElement, updatePayload, type, oldProps, newProps);
   updateFiberProps(domElement, newProps);
+}
+
+export function commitTextUpdate(textInstance, oldText, newText) {
+  textInstance.nodeValue = newText;
+}
+
+export function resetTextContent(domElement) {
+  setTextContent(domElement, "");
 }

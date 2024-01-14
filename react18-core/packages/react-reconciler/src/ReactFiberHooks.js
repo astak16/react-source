@@ -209,7 +209,7 @@ function dispatchSetStateAction(fiber, queue, action) {
 }
 
 function mountEffect(create, deps) {
-  // return mountEffectImpl(PassiveEffect, HookPassive, create, deps);
+  return mountEffectImpl(PassiveEffect, HookPassive, create, deps);
 }
 
 function updateEffect(create, deps) {

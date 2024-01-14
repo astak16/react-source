@@ -22,7 +22,6 @@ function createChildReconciler(shouldTrackSideEffects) {
   }
 
   // returnFiber 是父节点，也就是 workInProgress
-  // currentFirstChild 老 Fiber
   function deleteChild(returnFiber, childToDelete) {
     if (!shouldTrackSideEffects) return;
     // deletions
@@ -30,7 +29,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     // 把删除的节点保存到 deletions 数组中
     if (deletions === null) {
       returnFiber.deletions = [childToDelete];
-      // 将节点的 flags 设置为 ChildDeletion，表示这个节点需要被删除
+      // 将节点的 flags 设置为 ChildDeletion，表示这个节点的子 Fiber 需要被删除
       returnFiber.flags |= ChildDeletion;
     } else {
       returnFiber.deletions.push(childToDelete);
@@ -52,24 +51,35 @@ function createChildReconciler(shouldTrackSideEffects) {
   }
 
   // returnFiber 是父节点，也就是 workInProgress
-  // currentFirstChild 老节点的第一个子节点，也就是 current.child
-  // newChild 是新的子节点，也就是 current.updateQueue 中的 element
+  // currentFirstChild 是第一个子 Fiber，也就是 current.child
+  // element 是新的虚拟 dom，也就是 current.updateQueue 中的 element
   function reconcileSingleElement(returnFiber, currentFirstChild, element) {
     const key = element.key;
     let child = currentFirstChild;
+    // 是否有老 Fiber
+    // child 是老 Fiber
     while (child !== null) {
+      // 老 Fiber 的 key 和新虚拟 DOM 的 key 是否相同
+      // key 相同
       if (child.key === key) {
+        // 老 Fiber 的 type 和新虚拟 DOM 的 type 是否相同
+        // type 相同
         if (child.type === element.type) {
+          // 删除当前 Fiber 的兄弟 Fiber
           deleteRemainingChildren(returnFiber, child.sibling);
+          // 复用当前 Fiber
           const existing = useFiber(child, element.props);
           existing.return = returnFiber;
           return existing;
         } else {
+          // type 不相同，删除当前的 Fiber 及其兄弟 Fiber
           deleteRemainingChildren(returnFiber, child);
         }
       } else {
+        // key 不相同，删除当前的 child
         deleteChild(returnFiber, child);
       }
+      // 循环兄弟节点
       child = child.sibling;
     }
 
@@ -109,6 +119,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     return null;
   }
 
+  // 如果 current 存在且 current.type === element.type 就复用 Fiber，否则就创建一个新的 Fiber（div/span）
   function updateElement(returnFiber, current, element) {
     const elementType = element.type;
     if (current !== null) {
@@ -123,8 +134,31 @@ function createChildReconciler(shouldTrackSideEffects) {
     return created;
   }
 
+  // 如果 current 存在，就复用 Fiber，否则就创建一个新的 Fiber（文本）
+  function updateTextNode(returnFiber, current, textContent) {
+    if (current === null || current.tag !== HostText) {
+      const created = createFiberFromText(textContent);
+      created.return = returnFiber;
+      return created;
+    } else {
+      const existing = useFiber(current, textContent);
+      existing.return = returnFiber;
+      return existing;
+    }
+  }
+
   function updateSlot(returnFiber, oldFiber, newChild) {
     const key = oldFiber !== null ? oldFiber.key : null;
+    if (
+      (typeof newChild === "string" && newChild !== "") ||
+      typeof newChild === "number"
+    ) {
+      if (key !== null) {
+        return null;
+      }
+      return updateTextNode(returnFiber, oldFiber, "" + newChild);
+    }
+
     if (newChild !== null && typeof newChild === "object") {
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE: {
@@ -134,6 +168,31 @@ function createChildReconciler(shouldTrackSideEffects) {
         }
         default:
           return null;
+      }
+    }
+    return null;
+  }
+
+  // 从 existingChildren 中找到存在的 Fiber
+  function updateFromMap(existingChildren, returnFiber, newIdx, newChild) {
+    // 文本 Fiber
+    if (
+      (typeof newChild === "string" && newChild !== "") ||
+      typeof newChild === "number"
+    ) {
+      const matchedFiber = existingChildren.get(newIdx) || null;
+      return updateTextNode(returnFiber, matchedFiber, `${newChild}`);
+    }
+    // div/span Fiber
+    if (typeof newChild === "object" && newChild !== null) {
+      switch (newChild.$$typeof) {
+        case REACT_ELEMENT_TYPE: {
+          const matchedFiber =
+            existingChildren.get(
+              newChild.key === null ? newIdx : newChild.key
+            ) || null;
+          return updateElement(returnFiber, matchedFiber, newChild);
+        }
       }
     }
     return null;
@@ -153,39 +212,6 @@ function createChildReconciler(shouldTrackSideEffects) {
     return existingChildren;
   }
 
-  function updateTextNode(returnFiber, current, textContent) {
-    if (current === null || current.tag !== HostText) {
-      const created = createFiberFromText(textContent);
-      created.return = returnFiber;
-      return created;
-    } else {
-      const existing = useFiber(current, textContent);
-      existing.return = returnFiber;
-      return existing;
-    }
-  }
-
-  function updateFromMap(existingChildren, returnFiber, newIdx, newChild) {
-    if (
-      (typeof newChild === "string" && newChild !== "") ||
-      typeof newChild === "number"
-    ) {
-      const matchedFiber = existingChildren.get(newIdx) || null;
-      return updateTextNode(returnFiber, matchedFiber, `${newChild}`);
-    }
-    if (typeof newChild === "object" && newChild !== null) {
-      switch (newChild.$$typeof) {
-        case REACT_ELEMENT_TYPE: {
-          const matchedFiber =
-            existingChildren.get(
-              newChild.key === null ? newIdx : newChild.key
-            ) || null;
-          return updateElement(returnFiber, matchedFiber, newChild);
-        }
-      }
-    }
-  }
-
   function reconcileChildrenArray(returnFiber, currentFirstChild, newChildren) {
     // 链表中第一个 child
     let resultingFirstChild = null;
@@ -198,10 +224,30 @@ function createChildReconciler(shouldTrackSideEffects) {
     let lastPlacedIndex = 0;
 
     // 第一套方案
+    // 遍历 newChildren
+    // 如果 oldFiber 不存在则退出循环
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
-      nextOldFiber = oldFiber.sibling;
+      // oldFiber.index > newIdx，表示更新前的虚拟 DOM 有 false 节点
+      // 更新前          ->  更新后
+      // [false, a, b]  ->  [b, a, false]
+      if (oldFiber.index > newIdx) {
+        nextOldFiber = oldFiber;
+        oldFiber = null;
+      } else {
+        // 如果新节点比老节点多，oldFiber.sibling 为 null，表示已经没有老节点了
+        // 最后的 oldFiber 会等于 null，退出循环
+        nextOldFiber = oldFiber.sibling;
+      }
+      // 是否复用老 fiber，由 updateSlot 函数决定
+      // newFiber 什么时候为 null
+      // 1. 新节点是个 false
+      // 2. 新节点和老节点的类型(这个类型是指 $$typeof 的类型，不是 div/span 的类型)不同或者 key 不一样时
       const newFiber = updateSlot(returnFiber, oldFiber, newChildren[newIdx]);
+      // newFiber 为 null 时跳出循环
       if (newFiber === null) {
+        if (oldFiber === null) {
+          oldFiber = nextOldFiber;
+        }
         break;
       }
       if (shouldTrackSideEffects) {
@@ -209,6 +255,7 @@ function createChildReconciler(shouldTrackSideEffects) {
           deleteChild(returnFiber, oldFiber);
         }
       }
+      // placeChild 函数的作用：如果这个节点可以复用就会返回这个节点的 index，否则表示这个节点需要新创建
       lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
       if (previousNewFiber === null) {
         resultingFirstChild = newFiber;
@@ -219,12 +266,14 @@ function createChildReconciler(shouldTrackSideEffects) {
       oldFiber = nextOldFiber;
     }
 
+    // 当第一套方案没有处理完成时，这时 newIdx 是不等于 newChildren.length
     if (newIdx === newChildren.length) {
       deleteRemainingChildren(returnFiber, oldFiber);
       return resultingFirstChild;
     }
 
-    // 第二套方案
+    // 第二套方案，初始渲染会直接走这一套方案
+    // 更新时，如果新节点的个数比老节点多，且新节点没有对应的老节点时，oldFiber 为 null，则进入这里
     if (oldFiber === null) {
       // newChildren 是一个数组，遍历 newChildren
       for (; newIdx < newChildren.length; newIdx++) {
@@ -244,9 +293,13 @@ function createChildReconciler(shouldTrackSideEffects) {
         }
         previousNewFiber = newFiber;
       }
+      return resultingFirstChild;
     }
 
     // 第三套方案
+    // 方案一跳出时，进入方案三时，表示之后的节点没法完全复用，需要仔细比对
+    // oldFiber 就是已经处理到的节点，之后的节点还没有被处理
+    // newIdx 是已经处理到的新节点的索引
     const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
     for (; newIdx < newChildren.length; newIdx++) {
       const newFiber = updateFromMap(
@@ -291,6 +344,7 @@ function createChildReconciler(shouldTrackSideEffects) {
   }
 
   // 每个 fiber 都有一个 index 属性，表示当前 fiber 在父节点中的位置
+  // 如果是个复用的 fiber，current 存在，且 current.index > lastPlacedIndex，否则表示这个节点需要新创建，也可能是移动（移动也是创建）
   function placeChild(newFiber, lastPlacedIndex, newIdx) {
     newFiber.index = newIdx;
     if (!shouldTrackSideEffects) {
@@ -316,6 +370,12 @@ function createChildReconciler(shouldTrackSideEffects) {
   // newChild 是新的子节点，也就是 current.updateQueue 中的 element
   function reconcileChildFibers(returnFiber, currentFirstFiber, newChild) {
     // 处理单个节点
+    /**
+     * 通过三个条件
+     * 1. typeof newChild === "object"
+     * 2. newChild !== null
+     * 3. newChild.$$typeof === REACT_ELEMENT_TYPE
+     */
     if (typeof newChild === "object" && newChild !== null) {
       // 函数组件和原生节点都是这个类型
       switch (newChild.$$typeof) {

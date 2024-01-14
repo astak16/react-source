@@ -8,7 +8,7 @@ import { NoFlags } from "./ReactFiberFlags";
 
 export function FiberNode(tag, pendingProps, key) {
   this.tag = tag;
-  this.key = key;
+  this.key = key ?? null;
   this.type = null;
   // 目前可以理解为真实 dom 节点
   this.stateNode = null;

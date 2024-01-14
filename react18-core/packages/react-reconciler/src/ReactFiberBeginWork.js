@@ -9,6 +9,7 @@ import { processUpdateQueue } from "./ReactFiberClassUpdateQueue";
 import { shouldSetTextContent } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 import { mountChildFibers, reconcileChildFibers } from "./ReactChildFiber";
 import { renderWithHooks } from "./ReactFiberHooks";
+import { ContentReset } from "./ReactFiberFlags";
 
 function reconcileChildren(current, workInProgress, nextChildren) {
   // 初始渲染时，只有 div#root 这个节点 current 不为 null，其他节点都为 null
@@ -40,6 +41,7 @@ function updateHostRoot(current, workInProgress) {
 function updateHostComponent(current, workInProgress) {
   const { type } = workInProgress;
   const nextProps = workInProgress.pendingProps;
+  const prevProps = current !== null ? current.memoizedProps : null;
   // children 是在 props 中的
   let nextChildren = nextProps.children;
   // 判断 children 是否是文本节点
@@ -47,6 +49,9 @@ function updateHostComponent(current, workInProgress) {
   // 如果是文本节点，就将 nextChildren 置为 null
   if (isDirectTextChild) {
     nextChildren = null;
+  } else if (prevProps !== null && shouldSetTextContent(type, prevProps)) {
+    // 如果 workInProgress.pendingProps.children 不是文本，但是 prevProps 是文本，表示老的文本需要被清空
+    workInProgress.flags |= ContentReset;
   }
   // reconcileChildren 处理结束后，workInProgress.child 中就值了
   reconcileChildren(current, workInProgress, nextChildren);

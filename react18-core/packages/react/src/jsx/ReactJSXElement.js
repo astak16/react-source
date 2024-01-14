@@ -34,7 +34,7 @@ export function jsxDEV(type, config, maybeKey) {
   // maybeKey 是 jsx 上的 key
   // <div key="uccs">uccs</div>
   if (typeof maybeKey !== undefined) {
-    key = maybeKey;
+    key = maybeKey ?? null;
   }
   // config 的 key，使用展开运算法，将 props 的属性展开到 div 上，这时如果 props 中存在 key，那么这 key 就会在 config 中
   /*
@@ -44,10 +44,10 @@ export function jsxDEV(type, config, maybeKey) {
     <div style={{ color: "red" }} {...props}></div>;
   */
   if (hasValidKey(config)) {
-    key = config.key;
+    key = config.key ?? null;
   }
   if (hasValidRef(config)) {
-    key = config.ref;
+    key = config.ref ?? null;
   }
 
   for (propName in config) {

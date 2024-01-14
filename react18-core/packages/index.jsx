@@ -64,16 +64,18 @@ function ElementComponent() {
     };
   });
 
+  const onClickNumber = () => {
+    setNumber((number) => number + 1);
+  };
+
   const obj1 = { zhangsan: "男", style: { color: "red" } };
   const obj2 = { xiaohong: "女" };
-  console.log(number);
+  // console.log(number);
+
+  const A = () => <div>A</div>;
+  const B = () => <div>B</div>;
   return (
-    <div
-      className="first"
-      // {...(number === 1 ? obj1 : obj2)}
-      // style={{ color: "red" }}
-    >
-      {/* <div onClick={onClick}>{number}</div> */}
+    <div className="first">
       <div className="first-1" style={{ color: "red" }}>
         first-1
       </div>
@@ -88,6 +90,15 @@ function ElementComponent() {
           <MyComponent2 className="MyComponent2" />
         </div>
         <div className="second-23">second-23</div>
+      </div>
+      <div className="single-fiber">
+        <div onClick={onClickNumber}>
+          {/* {number.toString()}
+          click: {number}
+          <div>{number}</div> */}
+          {number % 2 !== 0 && <div className="single-fiber-sibling">xxx</div>}
+          single-fiber
+        </div>
       </div>
       <div className="first-3">
         text-3

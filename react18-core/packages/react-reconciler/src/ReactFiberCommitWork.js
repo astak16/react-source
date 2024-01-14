@@ -1,7 +1,11 @@
 import {
   appendInitialChild,
+  commitTextUpdate,
   commitUpdate,
   insertBefore,
+  removeChild,
+  removeChildFromContainer,
+  resetTextContent,
 } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 import {
   FunctionComponent,
@@ -9,11 +13,20 @@ import {
   HostRoot,
   HostText,
 } from "./ReactWorkTags";
-import { MutationMask, Placement, Update, Passive } from "./ReactFiberFlags";
+import {
+  MutationMask,
+  Placement,
+  Update,
+  Passive,
+  ContentReset,
+} from "./ReactFiberFlags";
 import {
   HasEffect as HookHasEffect,
   Passive as HookPassive,
 } from "./ReactHookEffectTags";
+
+let hostParent = null;
+let hostParentIsContainer = false;
 
 export function commitPassiveMountEffects(root, finishedWork) {
   commitPassiveMountOnFiber(root, finishedWork);
@@ -94,6 +107,23 @@ function commitPassiveUnmountOnFiber(finishedWork) {
 }
 
 function recursivelyTraversePassiveUnmountEffects(parentFiber) {
+  const deletions = parentFiber.deletions;
+
+  if ((parentFiber.flags & ChildDeletion) !== NoFlags) {
+    if (deletions !== null) {
+      for (let i = 0; i < deletions.length; i++) {
+        const childToDelete = deletions[i];
+        // TODO: Convert this to use recursion
+        nextEffect = childToDelete;
+        commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
+          childToDelete,
+          parentFiber
+        );
+      }
+    }
+    detachAlternateSiblings(parentFiber);
+  }
+
   if (parentFiber.subtreeFlags & Passive) {
     let child = parentFiber.child;
     while (child !== null) {
@@ -125,7 +155,48 @@ function commitHookEffectListUnmount(flags, finishedWork) {
   }
 }
 
+function commitDeletionEffects(root, returnFiber, deletedFiber) {
+  let parent = returnFiber;
+  findParent: while (parent !== null) {
+    switch (parent.tag) {
+      case HostComponent: {
+        hostParent = parent.stateNode;
+        hostParentIsContainer = false;
+        break findParent;
+      }
+      case HostRoot: {
+        hostParent = parent.stateNode.containerInfo;
+        hostParentIsContainer = true;
+        break findParent;
+      }
+    }
+    parent = parent.return;
+  }
+
+  commitDeletionEffectsOnFiber(root, returnFiber, deletedFiber);
+  hostParent = null;
+  hostParentIsContainer = false;
+
+  detachFiberMutation(deletedFiber);
+}
+
+function detachFiberMutation(fiber) {
+  const alternate = fiber.alternate;
+  if (alternate !== null) {
+    alternate.return = null;
+  }
+  fiber.return = null;
+}
+
 function recursivelyTraverseMutationEffects(root, parentFiber) {
+  const deletions = parentFiber.deletions;
+  if (deletions !== null) {
+    for (let i = 0; i < deletions.length; i++) {
+      const childToDelete = deletions[i];
+      commitDeletionEffects(root, parentFiber, childToDelete);
+    }
+  }
+
   // 查看子 Fiber 是否需要处理
   if (parentFiber.subtreeFlags & MutationMask) {
     let { child } = parentFiber;
@@ -187,7 +258,8 @@ function getHostSibling(fiber) {
 }
 
 function insertOrAppendPlacementNode(fiber, before, parent) {
-  const isHost = isHostParent(fiber);
+  const { tag } = fiber;
+  const isHost = tag === HostComponent || tag === HostText;
   if (isHost) {
     const { stateNode } = fiber;
     if (before) {
@@ -223,10 +295,162 @@ function commitPlacement(finishedWork) {
       break;
     }
     case HostComponent: {
+      // if (parentFiber.flags & ContentReset) {
+      //   // Reset the text content of the parent before doing any insertions
+      //   resetTextContent(parent);
+      //   // Clear ContentReset from the effect tag
+      //   parentFiber.flags &= ~ContentReset;
+      // }
       const parent = parentFiber.stateNode;
       const before = getHostSibling(finishedWork);
       insertOrAppendPlacementNode(finishedWork, before, parent);
       break;
+    }
+  }
+}
+
+function commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
+  deletedSubtreeRoot,
+  nearestMountedAncestor
+) {
+  while (nextEffect !== null) {
+    const fiber = nextEffect;
+
+    const child = fiber.child;
+
+    if (child !== null) {
+      child.return = fiber;
+      nextEffect = child;
+    } else {
+      commitPassiveUnmountEffectsInsideOfDeletedTree_complete(
+        deletedSubtreeRoot
+      );
+    }
+  }
+}
+
+function commitPassiveUnmountEffectsInsideOfDeletedTree_complete(
+  deletedSubtreeRoot
+) {
+  while (nextEffect !== null) {
+    const fiber = nextEffect;
+    const sibling = fiber.sibling;
+    const returnFiber = fiber.return;
+
+    detachFiberAfterEffects(fiber);
+    if (fiber === deletedSubtreeRoot) {
+      nextEffect = null;
+      return;
+    }
+
+    if (sibling !== null) {
+      sibling.return = returnFiber;
+      nextEffect = sibling;
+      return;
+    }
+
+    nextEffect = returnFiber;
+  }
+}
+
+function detachFiberAfterEffects(fiber) {
+  const alternate = fiber.alternate;
+  if (alternate !== null) {
+    fiber.alternate = null;
+    detachFiberAfterEffects(alternate);
+  }
+
+  fiber.child = null;
+  fiber.deletions = null;
+  fiber.sibling = null;
+
+  if (fiber.tag === HostComponent) {
+    const hostInstance = fiber.stateNode;
+    if (hostInstance !== null) {
+      // detachDeletedInstance(hostInstance);
+    }
+  }
+  fiber.stateNode = null;
+
+  fiber.return = null;
+  fiber.dependencies = null;
+  fiber.memoizedProps = null;
+  fiber.memoizedState = null;
+  fiber.pendingProps = null;
+  fiber.stateNode = null;
+  fiber.updateQueue = null;
+}
+
+function detachAlternateSiblings(parentFiber) {
+  const previousFiber = parentFiber.alternate;
+  if (previousFiber !== null) {
+    let detachedChild = previousFiber.child;
+    if (detachedChild !== null) {
+      previousFiber.child = null;
+      do {
+        const detachedSibling = detachedChild.sibling;
+        detachedChild.sibling = null;
+        detachedChild = detachedSibling;
+      } while (detachedChild !== null);
+    }
+  }
+}
+
+function recursivelyTraverseDeletionEffects(
+  finishedRoot,
+  nearestMountedAncestor,
+  parent
+) {
+  let child = parent.child;
+  while (child !== null) {
+    commitDeletionEffectsOnFiber(finishedRoot, nearestMountedAncestor, child);
+    child = child.sibling;
+  }
+}
+
+function commitDeletionEffectsOnFiber(
+  finishedRoot,
+  nearestMountedAncestor,
+  deletedFiber
+) {
+  switch (deletedFiber.tag) {
+    case HostComponent:
+    case HostText: {
+      const prevHostParent = hostParent;
+      const prevHostParentIsContainer = hostParentIsContainer;
+      hostParent = null;
+      recursivelyTraverseDeletionEffects(
+        finishedRoot,
+        nearestMountedAncestor,
+        deletedFiber
+      );
+      hostParent = prevHostParent;
+      hostParentIsContainer = prevHostParentIsContainer;
+
+      if (hostParent !== null) {
+        if (hostParentIsContainer) {
+          removeChildFromContainer(hostParent, deletedFiber.stateNode);
+        } else {
+          removeChild(hostParent, deletedFiber.stateNode);
+        }
+      }
+      return;
+    }
+    case FunctionComponent: {
+      recursivelyTraverseDeletionEffects(
+        finishedRoot,
+        nearestMountedAncestor,
+        deletedFiber
+      );
+      return;
+    }
+    default: {
+      recursivelyTraverseDeletionEffects(
+        finishedRoot,
+        nearestMountedAncestor,
+        deletedFiber
+      );
+      return;
     }
   }
 }
@@ -236,12 +460,22 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
   const current = finishedWork.alternate;
   switch (finishedWork.tag) {
     case FunctionComponent:
-    case HostRoot:
-    case HostText: {
+    case HostRoot: {
       // 递归处理 Fiber 树
       recursivelyTraverseMutationEffects(root, finishedWork);
       // 处理自身节点的副作用
       commitReconciliationEffects(finishedWork);
+      break;
+    }
+    case HostText: {
+      recursivelyTraverseMutationEffects(root, finishedWork);
+      commitReconciliationEffects(finishedWork);
+      if (flags & Update) {
+        const textInstance = finishedWork.stateNode;
+        const newText = finishedWork.memoizedProps;
+        const oldText = current !== null ? current.memoizedProps : newText;
+        commitTextUpdate(textInstance, oldText, newText);
+      }
       break;
     }
     case HostComponent: {
@@ -249,8 +483,11 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
       recursivelyTraverseMutationEffects(root, finishedWork);
       // 处理自身节点的副作用
       commitReconciliationEffects(finishedWork);
+      const instance = finishedWork.stateNode;
+      if (finishedWork.flags & ContentReset) {
+        resetTextContent(instance);
+      }
       if (flags & Update) {
-        const instance = finishedWork.stateNode;
         if (instance !== null) {
           const newProps = finishedWork.memoizedProps;
           const type = finishedWork.type;
