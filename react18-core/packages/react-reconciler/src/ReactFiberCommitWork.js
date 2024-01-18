@@ -19,6 +19,8 @@ import {
   Update,
   Passive,
   ContentReset,
+  ChildDeletion,
+  NoFlags,
 } from "./ReactFiberFlags";
 import {
   HasEffect as HookHasEffect,
@@ -27,6 +29,7 @@ import {
 
 let hostParent = null;
 let hostParentIsContainer = false;
+let nextEffect = null;
 
 export function commitPassiveMountEffects(root, finishedWork) {
   commitPassiveMountOnFiber(root, finishedWork);
@@ -44,13 +47,21 @@ function commitPassiveMountOnFiber(finishedRoot, finishedWork) {
       break;
     }
     case FunctionComponent: {
+      // 深度优先
+      // 因为 recursivelyTraversePassiveMountEffects 内部会检查当前 Fiber 的子节点，如果有子节点又会继续调用 commitPassiveMountOnFiber，形成深度优先
       recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
+      // 当前 Fiber 有 Passive 标记
       if (flags & Passive) {
+        // 处理当前 Fiber 的 effect 函数
         commitHookPassiveMountEffects(
           finishedWork,
           HookHasEffect | HookPassive
         );
       }
+      break;
+    }
+    default: {
+      recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
       break;
     }
   }
@@ -72,13 +83,18 @@ function commitHookPassiveMountEffects(finishedWork, hookFlags) {
 
 function commitHookEffectListMount(flags, finishedWork) {
   const updateQueue = finishedWork.updateQueue;
+  // 取出 updateQueue 中保存的 effect 链表
   let lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
   if (lastEffect !== null) {
     const firstEffect = lastEffect.next;
+    // 第一个 effect 函数
     let effect = firstEffect;
     do {
+      // 如果 effect.tag  是  HookHasEffect | HookPassive 标记就执行 effect.create 函数，并将返回的函数保存到 destroy 中，等待 Unmount 时执行
       if ((effect.tag & flags) === flags) {
         const create = effect.create;
+        // 执行 create 函数，得到 destroy 函数
+        // 将 destroy 函数保存到 effect.destroy 中
         effect.destroy = create();
       }
       effect = effect.next;
@@ -103,17 +119,19 @@ function commitPassiveUnmountOnFiber(finishedWork) {
       }
       break;
     }
+    default: {
+      recursivelyTraversePassiveUnmountEffects(finishedWork);
+      break;
+    }
   }
 }
 
 function recursivelyTraversePassiveUnmountEffects(parentFiber) {
   const deletions = parentFiber.deletions;
-
   if ((parentFiber.flags & ChildDeletion) !== NoFlags) {
     if (deletions !== null) {
       for (let i = 0; i < deletions.length; i++) {
         const childToDelete = deletions[i];
-        // TODO: Convert this to use recursion
         nextEffect = childToDelete;
         commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
           childToDelete,
@@ -146,6 +164,7 @@ function commitHookEffectListUnmount(flags, finishedWork) {
     do {
       if ((effect.tag & flags) === flags) {
         const destroy = effect.destroy;
+        // 如果 destroy 存在，则执行 destroy 函数
         if (destroy !== undefined) {
           destroy();
         }
@@ -295,12 +314,10 @@ function commitPlacement(finishedWork) {
       break;
     }
     case HostComponent: {
-      // if (parentFiber.flags & ContentReset) {
-      //   // Reset the text content of the parent before doing any insertions
-      //   resetTextContent(parent);
-      //   // Clear ContentReset from the effect tag
-      //   parentFiber.flags &= ~ContentReset;
-      // }
+      if (parentFiber.flags & ContentReset) {
+        resetTextContent(parent);
+        parentFiber.flags &= ~ContentReset;
+      }
       const parent = parentFiber.stateNode;
       const before = getHostSibling(finishedWork);
       insertOrAppendPlacementNode(finishedWork, before, parent);
@@ -315,7 +332,7 @@ function commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
 ) {
   while (nextEffect !== null) {
     const fiber = nextEffect;
-
+    commitPassiveUnmountInsideDeletedTreeOnFiber(fiber, nearestMountedAncestor);
     const child = fiber.child;
 
     if (child !== null) {
@@ -325,6 +342,22 @@ function commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
       commitPassiveUnmountEffectsInsideOfDeletedTree_complete(
         deletedSubtreeRoot
       );
+    }
+  }
+}
+
+function commitPassiveUnmountInsideDeletedTreeOnFiber(
+  current,
+  nearestMountedAncestor
+) {
+  switch (current.tag) {
+    case FunctionComponent: {
+      commitHookPassiveUnmountEffects(
+        current,
+        nearestMountedAncestor,
+        HookPassive
+      );
+      break;
     }
   }
 }

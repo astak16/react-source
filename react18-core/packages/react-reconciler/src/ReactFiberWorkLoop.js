@@ -75,6 +75,8 @@ function commitRoot(root) {
     (finishedWork.subtreeFlags & Passive) !== NoFlags ||
     (finishedWork.flags & Passive) !== NoFlags
   ) {
+    // 如果根节点上没有 Passive 这个标记，就将根节点标记为 Passive
+    // 这么设置的原因是防止在同一个 useEffect 中多次执行 commitWork
     if (!rootDoseHavePassiveEffect) {
       rootDoseHavePassiveEffect = true;
       scheduleCallback(flushPassiveEffects);
@@ -99,6 +101,7 @@ function commitRoot(root) {
   if (subtreeHasEffects || rootHasEffect) {
     // 有处理就进入 commitMutationEffectsOnFiber 函数
     commitMutationEffectsOnFiber(finishedWork, root);
+    // 释放 rootDoseHavePassiveEffect
     if (rootDoseHavePassiveEffect) {
       rootDoseHavePassiveEffect = false;
       rootWithPendingPassiveEffects = root;
@@ -284,7 +287,9 @@ function completeUnitOfWork(unitOfWork) {
 function flushPassiveEffects() {
   if (rootWithPendingPassiveEffects !== null) {
     const root = rootWithPendingPassiveEffects;
+    // 先执行 useEffect 的 destroy 函数
     commitPassiveUnmountEffects(root.current);
+    // 再执行 useEffect 的 effect 函数
     commitPassiveMountEffects(root, root.current);
   }
 }

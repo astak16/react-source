@@ -23,6 +23,7 @@ let workInProgressHook = null; // 当前正在处理的 workInProgress 的 hook
 // currentHook 值来自于 currentlyRenderingFiber.memoizedState，表示当前正在处理的 hook
 // 第二次来自于 currentHook.next
 // 只在更新时使用
+// 在执行完 updateWorkInProgressHook 后，currentHook 和 workInProgressHook 内容是一样的，但不是同一个对象
 let currentHook = null;
 
 // 函数组件挂载时执行的 hooks
@@ -143,7 +144,7 @@ function updateReducer(reducer) {
 }
 
 function updateWorkInProgressHook() {
-  // updateWorkInProgressHook 函数第一运行时 currentHook 为 null
+  // updateWorkInProgressHook 函数第一次运行时 currentHook 为 null
   if (currentHook === null) {
     const current = currentlyRenderingFiber.alternate;
     currentHook = current.memoizedState;
@@ -229,26 +230,28 @@ function mountEffectImpl(fiberFlags, hookFlags, create, deps) {
 }
 
 function pushEffect(tag, create, destroy, deps) {
-  const effect = {
-    tag,
-    create,
-    destroy,
-    deps,
-    next: null,
-  };
+  const effect = { tag, create, destroy, deps, next: null };
+  // 如果当前的 Fiber 上不存在 updateQueue，说明当前处理的是 Fiber 的第一个 hook 是 useEffect
   let componentUpdateQueue = currentlyRenderingFiber.updateQueue;
+  // 如果不存在 updateQueue，就初始化一个 updateQueue
   if (componentUpdateQueue === null) {
     componentUpdateQueue = createFunctionComponentUpdateQueue();
     currentlyRenderingFiber.updateQueue = componentUpdateQueue;
+    // lastEffect 指向 Fiber 中最后一个 useEffect
     componentUpdateQueue.lastEffect = effect.next = effect;
   } else {
+    // 如果存在 updateQueue，说明当前处理的不是 Fiber 的第一个 hook
     const lastEffect = componentUpdateQueue.lastEffect;
+    // 如果不存在 lastEffect，说明当前处理的的是 Fiber 中的第一个 useEffect
     if (lastEffect === null) {
+      // lastEffect 指向 Fiber 中最后一个 useEffect
       componentUpdateQueue.lastEffect = effect.next = effect;
     } else {
+      // 如果存在 lastEffect，说明当前处理的是 Fiber 中的第二个及之后的 useEffect
       const firstEffect = lastEffect.next;
       lastEffect.next = effect;
       effect.next = firstEffect;
+      // lastEffect 指向 Fiber 中最后一个 useEffect
       componentUpdateQueue.lastEffect = effect;
     }
   }
@@ -256,27 +259,34 @@ function pushEffect(tag, create, destroy, deps) {
 }
 
 function createFunctionComponentUpdateQueue() {
-  return {
-    lastEffect: null,
-  };
+  return { lastEffect: null };
 }
 
 function updateEffectImpl(fiberFlags, hookFlags, create, deps) {
+  // 取出当前 Fiber 中正在运行的 hook
+  // 有一个 hook，这个函数就会运行一次，运行之后这个 hook 就是当前需要处理的 hook
   const hook = updateWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
   let destroy;
+  // 老 hook 存在
   if (currentHook !== null) {
     const prevEffect = currentHook.memoizedState;
+    // 拿到上一个 hook 的 effect
     destroy = prevEffect.destroy;
+    // 有依赖
     if (nextDeps !== null) {
       const prevDeps = prevEffect.deps;
+      // 依赖相同的情况
       if (areHookInputsEqual(nextDeps, prevDeps)) {
+        // 给 effect tag 标记为 HookHasEffect | HookPassive
         hook.memoizedState = pushEffect(hookFlags, create, destroy, nextDeps);
         return;
       }
     }
   }
+  // 依赖不相同的情况，说明当前的 Fiber 需要处理副作用
   currentlyRenderingFiber.flags |= fiberFlags;
+  // 给 effect tag 标记为 HookHasEffect | HookPassive
   hook.memoizedState = pushEffect(
     HookHasEffect | hookFlags,
     create,
@@ -288,6 +298,7 @@ function updateEffectImpl(fiberFlags, hookFlags, create, deps) {
 function areHookInputsEqual(nextDeps, prevDeps) {
   if (prevDeps === null) return null;
   for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+    // 是同一个对象
     if (Object.is(nextDeps[i], prevDeps[i])) continue;
     return false;
   }
@@ -300,6 +311,9 @@ function areHookInputsEqual(nextDeps, prevDeps) {
 export function renderWithHooks(current, workInProgress, Component, props) {
   // 将 workInProgress 保存到全局中
   currentlyRenderingFiber = workInProgress;
+  // 这一步骤其实很关键，在更新时如果 updateQueue 没有设置为 null
+  // 那么更新时的 effect 会和初次渲染的 effect 组成链表，这是有问题的
+  // 所有 react 在 renderWithHooks 执行时将 updateQueue 设置为 null
   workInProgress.updateQueue = null;
   // 如果 current 有值，说明是更新，否则是初次渲染
   // 当然，如果没有要更新的 state，也不用走更新逻辑

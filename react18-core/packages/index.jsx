@@ -2,6 +2,10 @@ import { createRoot } from "react-dom/client";
 import { useReducer, useState, useEffect } from "react";
 
 let MyComponent1 = () => {
+  useEffect(() => {
+    console.log("my-component-1 create effect");
+    return () => console.log("my-component-1 destroy");
+  });
   return <div className="my-component-1">MyComponent-1</div>;
 };
 
@@ -10,6 +14,10 @@ let MyComponent2 = () => {
 };
 
 let MyComponent3 = () => {
+  useEffect(() => {
+    console.log("my-component-3 create effect");
+    return () => console.log("my-component-3 destroy");
+  });
   return (
     <div className="my-component-3">
       text-4
@@ -20,6 +28,10 @@ let MyComponent3 = () => {
 };
 
 let MyComponent4 = () => {
+  useEffect(() => {
+    console.log("my-component-4 create effect");
+    return () => console.log("my-component-4 destroy");
+  });
   return <div className="my-component-4">MyComponent-4</div>;
 };
 
@@ -44,11 +56,30 @@ let element = (
 );
 
 function ElementComponent() {
-  // const [number, setAge] = useReducer(getAge, 1); // ===> useReducer1
-  const [number1, setAge2] = useReducer(getAge, 11); // ===> useReducer2
   const [number, setNumber] = useState(1);
+  const [number2, setNumber2] = useState(1);
+  useEffect(() => {
+    console.log("create effect");
+    return () => {
+      console.log("destroy effect");
+    };
+  });
+  useEffect(() => {
+    console.log("create effect2", number);
+    return () => {
+      console.log("destroy effect2");
+    };
+  }, [number]);
+  useEffect(() => {
+    console.log("create effect3", number2);
+    return () => {
+      console.log("destroy effect3");
+    };
+  }, [number2]);
+  // const [number, setAge] = useReducer(getAge, 1); // ===> useReducer1
+  // const [number1, setAge2] = useReducer(getAge, 11); // ===> useReducer2
   const onClick = () => {
-    setNumber((number) => number + 1);
+    // setNumber((number) => number + 1);
     // setNumber((number) => number + 1);
     // setNumber(number + 1);
     // setNumber(number + 1);
@@ -56,13 +87,6 @@ function ElementComponent() {
     // setAge({ type: "add", value: 3 });
     // setAge2({ type: "minus", value: 12 });
   };
-
-  useEffect(() => {
-    console.log("create effect");
-    return () => {
-      console.log("destroy effect");
-    };
-  });
 
   const onClickNumber = () => {
     setNumber((number) => number + 1);
@@ -103,8 +127,8 @@ function ElementComponent() {
       <div className="first-3">
         text-3
         <div className="second-31">
-          <MyComponent3 className="MyComponent3" />
-          <div className="third-312">third-312</div>
+          {number % 2 !== 0 && <MyComponent3 className="MyComponent3" />}
+          {number % 2 !== 0 && <div className="third-312">third-312</div>}
           text-5
         </div>
         <div className="second-32">second-32</div>
