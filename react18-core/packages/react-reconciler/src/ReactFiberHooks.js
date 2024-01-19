@@ -1,10 +1,14 @@
 import ReactSharedInternals from "shared/ReactSharedInternals";
 import { enqueueConcurrentHookUpdate } from "./ReactFiberConcurrentUpdates";
 import { scheduleUpdateOnFiber } from "./ReactFiberWorkLoop";
-import { Passive as PassiveEffect } from "./ReactFiberFlags";
+import {
+  Passive as PassiveEffect,
+  Update as UpdateEffect,
+} from "./ReactFiberFlags";
 import {
   HasEffect as HookHasEffect,
   Passive as HookPassive,
+  Layout as HookLayout,
 } from "./ReactHookEffectTags";
 
 const { ReactCurrentDispatcher } = ReactSharedInternals;
@@ -31,6 +35,7 @@ const HooksDispatcherOnMount = {
   useReducer: mountReducer,
   useState: mountState,
   useEffect: mountEffect,
+  useLayoutEffect: mountLayoutEffect,
 };
 
 // 函数组件更新时执行的 hooks
@@ -38,6 +43,7 @@ const HooksDispatcherOnUpdate = {
   useReducer: updateReducer,
   useState: updateState,
   useEffect: updateEffect,
+  useLayoutEffect: updateLayoutEffect,
 };
 
 // 初次渲染时执行，如果有多个 useReducer，这个函数会多次运行
@@ -267,7 +273,7 @@ function updateEffectImpl(fiberFlags, hookFlags, create, deps) {
   // 有一个 hook，这个函数就会运行一次，运行之后这个 hook 就是当前需要处理的 hook
   const hook = updateWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
-  let destroy;
+  let destroy = undefined;
   // 老 hook 存在
   if (currentHook !== null) {
     const prevEffect = currentHook.memoizedState;
@@ -303,6 +309,14 @@ function areHookInputsEqual(nextDeps, prevDeps) {
     return false;
   }
   return true;
+}
+
+function mountLayoutEffect(create, deps) {
+  return mountEffectImpl(UpdateEffect, HookLayout, create, deps);
+}
+
+function updateLayoutEffect(create, deps) {
+  return updateEffectImpl(UpdateEffect, HookLayout, create, deps);
 }
 
 // 这个函数是 beginWork 时调用

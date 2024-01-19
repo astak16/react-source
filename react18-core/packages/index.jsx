@@ -1,7 +1,12 @@
 import { createRoot } from "react-dom/client";
-import { useReducer, useState, useEffect } from "react";
+import { useReducer, useState, useEffect, useLayoutEffect } from "react";
 
 let MyComponent1 = () => {
+  useLayoutEffect(() => {
+    console.log("my-component-1 useLayoutEffect create layout effect");
+    return () =>
+      console.log("my-component-1 useLayoutEffect destroy layout effect");
+  });
   useEffect(() => {
     console.log("my-component-1 create effect");
     return () => console.log("my-component-1 destroy");

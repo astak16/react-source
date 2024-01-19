@@ -21,10 +21,12 @@ import {
   ContentReset,
   ChildDeletion,
   NoFlags,
+  LayoutMask,
 } from "./ReactFiberFlags";
 import {
   HasEffect as HookHasEffect,
   Passive as HookPassive,
+  Layout as HookLayout,
 } from "./ReactHookEffectTags";
 
 let hostParent = null;
@@ -164,6 +166,7 @@ function commitHookEffectListUnmount(flags, finishedWork) {
     do {
       if ((effect.tag & flags) === flags) {
         const destroy = effect.destroy;
+        effect.destroy = undefined;
         // 如果 destroy 存在，则执行 destroy 函数
         if (destroy !== undefined) {
           destroy();
@@ -492,7 +495,15 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
   const flags = finishedWork.flags;
   const current = finishedWork.alternate;
   switch (finishedWork.tag) {
-    case FunctionComponent:
+    case FunctionComponent: {
+      recursivelyTraverseMutationEffects(root, finishedWork);
+      commitReconciliationEffects(finishedWork);
+      if (flags & Update) {
+        // useLayoutEffect 会先执行 unmount 阶段的 destroy 函数
+        commitHookEffectListUnmount(HookLayout | HookHasEffect, finishedWork);
+      }
+      break;
+    }
     case HostRoot: {
       // 递归处理 Fiber 树
       recursivelyTraverseMutationEffects(root, finishedWork);
@@ -534,5 +545,48 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
       }
       break;
     }
+    default: {
+      recursivelyTraverseMutationEffects(root, finishedWork, lanes);
+      commitReconciliationEffects(finishedWork);
+      return;
+    }
   }
+}
+
+export function commitLayoutEffects(finishedWork, root) {
+  const current = finishedWork.alternate;
+  commitLayoutEffectOnFiber(root, current, finishedWork);
+}
+
+function commitLayoutEffectOnFiber(finishedRoot, current, finishedWork) {
+  const flags = finishedWork.flags;
+  switch (finishedWork.tag) {
+    case FunctionComponent: {
+      recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
+      if (flags & Update) {
+        // useLayoutEffect 执行 mount 阶段的 effect 函数
+        commitHookLayoutEffects(finishedWork, HookLayout | HookHasEffect);
+      }
+      break;
+    }
+    default: {
+      recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
+      break;
+    }
+  }
+}
+
+function recursivelyTraverseLayoutEffects(root, parentFiber) {
+  if (parentFiber.subtreeFlags & LayoutMask) {
+    let child = parentFiber.child;
+    while (child !== null) {
+      const current = child.alternate;
+      commitLayoutEffectOnFiber(root, current, child);
+      child = child.sibling;
+    }
+  }
+}
+
+function commitHookLayoutEffects(finishedWork, hookFlags) {
+  commitHookEffectListMount(hookFlags, finishedWork);
 }

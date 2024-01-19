@@ -7,6 +7,7 @@ import {
   commitMutationEffectsOnFiber,
   commitPassiveMountEffects,
   commitPassiveUnmountEffects,
+  commitLayoutEffects,
 } from "./ReactFiberCommitWork";
 import { finishQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
 
@@ -79,6 +80,7 @@ function commitRoot(root) {
     // 这么设置的原因是防止在同一个 useEffect 中多次执行 commitWork
     if (!rootDoseHavePassiveEffect) {
       rootDoseHavePassiveEffect = true;
+      // useEffect commitWork 阶段的入口函数，异步执行
       scheduleCallback(flushPassiveEffects);
     }
   }
@@ -99,8 +101,10 @@ function commitRoot(root) {
   // 查看 RootFiber 是否有处理
   const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
   if (subtreeHasEffects || rootHasEffect) {
-    // 有处理就进入 commitMutationEffectsOnFiber 函数
+    // commitWork 入口函数
     commitMutationEffectsOnFiber(finishedWork, root);
+    // useLayoutEffect commitWork 阶段的入口函数
+    commitLayoutEffects(finishedWork, root);
     // 释放 rootDoseHavePassiveEffect
     if (rootDoseHavePassiveEffect) {
       rootDoseHavePassiveEffect = false;
